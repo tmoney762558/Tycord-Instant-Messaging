@@ -28,10 +28,12 @@ interface FriendRequest {
 }
 
 const SideNav = ({
+  currentTab,
   setCurrentTab,
   userData,
   setShowProfileEditor,
 }: {
+  currentTab: string;
   setCurrentTab: React.Dispatch<React.SetStateAction<string>>;
   userData: CurrentUser | null;
   setShowProfileEditor: React.Dispatch<React.SetStateAction<boolean>>;
@@ -39,7 +41,7 @@ const SideNav = ({
   const navigate = useNavigate();
 
   return (
-    <nav className={`md:flex hidden flex-col items-center shrink-0 relative p-6 bg-slate-950`}>
+    <nav className={`${currentTab === "Direct Messages" ? "flex" : "md:flex hidden"} flex-col items-center shrink-0 relative p-6 bg-slate-950`}>
       <button className="lg:p-2 p-1 bg-slate-800 hover:bg-red-400 rounded-full cursor-pointer" onClick={() => {
         setCurrentTab("Direct Messages");
       }}>

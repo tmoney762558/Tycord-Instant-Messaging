@@ -206,6 +206,7 @@ const Dashboard = () => {
     <div className="flex relative max-w-full min-h-[40rem] h-screen">
       {/* Shell for the entire dashboard */}
       <SideNav
+        currentTab={currentTab}
         setCurrentTab={setCurrentTab}
         userData={userData}
         setShowProfileEditor={setShowProfileEditor}

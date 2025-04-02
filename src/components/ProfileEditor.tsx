@@ -145,7 +145,7 @@ const ProfileEditor = ({
         </div>
       ) : null}
       {editing ? (
-        <div className="flex flex-col w-[37rem] h-[35rem] p-5 bg-slate-900 rounded-lg shadow-lg shadow-black">
+        <div className="flex flex-col w-full max-w-[50rem] h-[37rem] p-5 bg-slate-900 rounded-lg shadow-lg shadow-black overflow-y-auto">
           <div className="flex justify-end w-full py-3">
             <div
               className="bg-white rounded-full shadow-md shadow-black cursor-pointer"
@@ -168,7 +168,7 @@ const ProfileEditor = ({
               setEditing(false);
             }}
           >
-            <div className="flex items-center gap-5">
+            <div className="flex lg:flex-row flex-col lg:justify-start justify-center items-center gap-5">
               <img
                 className="w-[7.5rem] aspect-square rounded-full"
                 src={
@@ -179,7 +179,7 @@ const ProfileEditor = ({
                     : defaultPFP
                 }
               ></img>
-              <div className="text-white font-bold">
+              <div className="flex flex-col lg:items-start items-center w-full text-white font-bold">
                 <p className="text-lg">{userData?.username}</p>
                 <p>{userData?.nickname}</p>
                 <label className="block mt-5 py-1 px-3 bg-white border-2 border-black rounded-full text-black font-mono cursor-pointer" htmlFor="avatarInput">
@@ -237,7 +237,7 @@ const ProfileEditor = ({
                 }}
               ></input>
               <button
-                className="w-full h-10 mt-5 bg-red-400 rounded-sm text-white font-bold cursor-pointer"
+                className="w-full h-10 lg:mb-0 mb-5 mt-5 bg-red-400 rounded-sm text-white font-bold cursor-pointer"
                 type="submit"
               >
                 Save Changes
