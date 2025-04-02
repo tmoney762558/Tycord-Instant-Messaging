@@ -1,4 +1,4 @@
-#TyCord Instant Messaging
+TYCORD INSTANT MESSAGING
 
 Instructions:
 
