@@ -1,0 +1,339 @@
+import Conversation from "./Conversation";
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { setMessages } from "../reduxStore/slices/messagesSlice";
+import ProfileEditor from "./ProfileEditor";
+import { useNavigate } from "react-router-dom";
+import SideNav from "./SideNav";
+import DirectMessagesTab from "./DirectMessagesTab";
+import FriendTab from "./FriendTab";
+import ConversationTab from "./ConversationTab";
+import ProfileDisplay from "./ProfileDisplay";
+import ConversationMenu from "./ConversationMenu";
+import DeleteMessagePrompt from "./DeleteMessagePrompt";
+
+interface CurrentUser {
+  createdAt: string;
+  username: string;
+  nickname: string;
+  avatar: string;
+  bio: string;
+  friends: User[];
+  friendRequests: FriendRequest[];
+  friendRequestsSent: FriendRequest[];
+}
+
+interface User {
+  username: string;
+  nickname: string;
+  avatar: string;
+  bio: string;
+}
+
+interface FriendRequest {
+  username: string;
+  nickname: string;
+  avatar: string;
+  bio: string;
+}
+
+interface Message {
+  id: number;
+  createdAt: string;
+  content: string;
+  user: User;
+}
+
+interface MessageState {
+  messages: {
+    messages: Message[];
+  };
+}
+
+interface Conversation {
+  id: number;
+  name: string;
+  image: string;
+}
+
+const Dashboard = () => {
+  const apiBase = "http://localhost:3000/";
+  const token = localStorage.getItem("token") || "";
+  const [userData, setUserData] = useState<CurrentUser | null>(null);
+  const [showProfileEditor, setShowProfileEditor] = useState(false);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [convoId, setConvoId] = useState(-1); // Convo Id = -1 === No Conversation Selected
+  const [showConversationMenu, setShowConversationMenu] = useState(false);
+  const [recipients, setRecipients] = useState<String[]>([]);
+  const [conversationName, setConversationName] = useState("");
+  const [conversationImage, setConversationImage] = useState("");
+  const messages = useSelector(
+    (state: MessageState) => state.messages.messages
+  );
+  const [messageInput, setMessageInput] = useState("");
+  const [currentMessage, setCurrentMessage] = useState(-1);
+  const [showDeleteMessagePrompt, setShowDeleteMessagePrompt] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [profileUser, setProfileUser] = useState("");
+  const [profileNick, setProfileNick] = useState("");
+  const [profileAvatar, setProfileAvatar] = useState("");
+  const [profileBio, setProfileBio] = useState("");
+  const [friendRequestInput, setFriendRequestInput] = useState("");
+
+  const [currentTab, setCurrentTab] = useState("Direct Messages");
+
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchUserData();
+    fetchConversations();
+  }, []);
+
+  // Fetches data for user
+  async function fetchUserData() {
+    try {
+      const response = await fetch(apiBase + "user", {
+        method: "GET",
+        headers: {
+          Authorization: token,
+        },
+      });
+
+      const apiData = await response.json();
+
+      if (apiData) {
+        setUserData(apiData);
+      } else {
+        navigate("/");
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  // Fetches all conversations for a user
+  async function fetchConversations() {
+    const apiData = await fetch(apiBase + "conversations", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+    });
+
+    const fetchedConversations = await apiData.json();
+
+    setConversations(fetchedConversations);
+  }
+
+  async function fetchMessages(currentConversation: number) {
+    try {
+      const response = await fetch(
+        apiBase + "messages/" + currentConversation,
+        {
+          method: "GET",
+          headers: {
+            Authorization: token,
+          },
+        }
+      );
+
+      const apiData = await response.json();
+
+      if (!apiData) {
+        console.log("Something went wrong while fetching the data.");
+        return;
+      }
+
+      dispatch(setMessages(apiData));
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  // Sends message from current user to conversation
+  async function sendMessage() {
+    try {
+      const response = await fetch(apiBase + "messages/" + convoId, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token,
+        },
+        body: JSON.stringify({
+          messageContent: messageInput,
+        }),
+      });
+
+      const apiData = await response.json();
+
+      if (!apiData) {
+        alert("Something went wrong while sending your message.");
+      }
+
+      fetchMessages(convoId);
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  // Creates a friend request
+  async function createFriendRequest(userToAdd: string) {
+    try {
+      const response = await fetch(apiBase + "user/sendFriendRequest", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token,
+        },
+        body: JSON.stringify({
+          userToAdd,
+        }),
+      });
+
+      const apiData = await response.json();
+
+      if (apiData) {
+        fetchUserData();
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  return (
+    <div className="flex relative max-w-full min-h-[40rem] h-screen">
+      {/* Shell for the entire dashboard */}
+      <SideNav
+        setCurrentTab={setCurrentTab}
+        userData={userData}
+        setShowProfileEditor={setShowProfileEditor}
+      ></SideNav>
+      <DirectMessagesTab
+        currentTab={currentTab}
+        setCurrentTab={setCurrentTab}
+        fetchConversations={fetchConversations}
+        setConvoId={setConvoId}
+        setShowConversationMenu={setShowConversationMenu}
+        conversations={conversations}
+        setConversationName={setConversationName}
+        setConversationImage={setConversationImage}
+        fetchMessages={fetchMessages}
+      ></DirectMessagesTab>
+      <div className="flex flex-col items-center flex-1 relative max-w-full px-0 bg-slate-800 overflow-hidden">
+        {convoId === -1 ? (
+          <FriendTab
+            currentTab={currentTab}
+            setCurrentTab={setCurrentTab}
+            fetchUserData={fetchUserData}
+            userData={userData}
+            setShowConversationMenu={setShowConversationMenu}
+            setRecipients={setRecipients}
+            setProfileUser={setProfileUser}
+            setProfileNick={setProfileNick}
+            setProfileAvatar={setProfileAvatar}
+            setProfileBio={setProfileBio}
+            setShowProfile={setShowProfile}
+          ></FriendTab>
+        ) : (
+          <ConversationTab
+            currentTab={currentTab}
+            setCurrentTab={setCurrentTab}
+            convoId={convoId}
+            setConvoId={setConvoId}
+            conversationName={conversationName}
+            conversationImage={conversationImage}
+            messages={messages}
+            userData={userData}
+            setShowProfileEditor={setShowProfileEditor}
+            setProfileUser={setProfileUser}
+            setProfileNick={setProfileNick}
+            setProfileAvatar={setProfileAvatar}
+            setProfileBio={setProfileBio}
+            setShowProfile={setShowProfile}
+            fetchConversations={fetchConversations}
+            setShowDeleteMessagePrompt={setShowDeleteMessagePrompt}
+            setCurrentMessage={setCurrentMessage}
+          ></ConversationTab>
+        )}
+        {convoId !== -1 ? (
+          <form
+            className="flex items-center absolute bottom-0 w-full h-20 px-3 bg-slate-950"
+            onSubmit={(e) => {
+              e.preventDefault();
+              sendMessage();
+              e.currentTarget.reset();
+            }}
+          >
+            <input
+              className="w-full h-10 px-4 bg-slate-900 rounded-full outline-none text-lg text-neutral-300 font-bold font-mono"
+              placeholder="Send a Message"
+              onChange={(e) => {
+                setMessageInput(e.target.value);
+              }}
+            ></input>
+          </form>
+        ) : (
+          <form
+            className="flex items-center absolute bottom-0 w-full h-20 px-3 bg-slate-950"
+            onSubmit={(e) => {
+              e.preventDefault();
+              createFriendRequest(friendRequestInput);
+              e.currentTarget.reset();
+            }}
+          >
+            <input
+              className="w-full h-10 px-4 bg-slate-900 rounded-full outline-none text-lg text-neutral-300 font-bold font-mono"
+              type="text"
+              placeholder="Send a Friend Request"
+              onChange={(e) => {
+                setFriendRequestInput(e.target.value);
+              }}
+            ></input>
+          </form>
+        )}
+      </div>
+      {showProfile ? (
+        <ProfileDisplay
+          userData={userData}
+          setShowProfileEditor={setShowProfileEditor}
+          setShowProfile={setShowProfile}
+          profileNick={profileNick}
+          profileUser={profileUser}
+          profileAvatar={profileAvatar}
+          setRecipients={setRecipients}
+          setShowConversationMenu={setShowConversationMenu}
+          createFriendRequest={createFriendRequest}
+          profileBio={profileBio}
+        ></ProfileDisplay>
+      ) : null}
+      {showConversationMenu ? (
+        <ConversationMenu
+          recipients={recipients}
+          fetchConversations={fetchConversations}
+          setShowConversationMenu={setShowConversationMenu}
+          setRecipients={setRecipients}
+        ></ConversationMenu>
+      ) : null}
+      {showProfileEditor ? (
+        <ProfileEditor
+          fetchUserData={fetchUserData}
+          userData={userData}
+          showProfileEditor={showProfileEditor}
+          setShowProfileEditor={setShowProfileEditor}
+        ></ProfileEditor>
+      ) : null}
+      {showDeleteMessagePrompt ? (
+        <DeleteMessagePrompt
+          setShowDeleteMessagePrompt={setShowDeleteMessagePrompt}
+          convoId={convoId}
+          currentMessage={currentMessage}
+          fetchMessages={fetchMessages}
+        ></DeleteMessagePrompt>
+      ) : null}
+    </div>
+  );
+};
+
+export default Dashboard;
