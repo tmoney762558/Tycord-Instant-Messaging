@@ -71,7 +71,7 @@ const ConversationTab = ({
   setShowDeleteMessagePrompt: React.Dispatch<React.SetStateAction<boolean>>;
   setCurrentMessage: React.Dispatch<React.SetStateAction<number>>;
 }) => {
-  const apiBase = "http://localhost:3000/";
+  const apiBase = process.env.API_BASE + "/";
   const token = localStorage.getItem("token") || "";
 
   async function leaveConversation(convoId: number) {

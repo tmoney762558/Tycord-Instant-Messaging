@@ -3,7 +3,7 @@ services:
     build: .
     container_name: tycord-instant-messaging
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/tycord
+      - DATABASE_URL=postgresql://tycord_instant_messaging_user:13xQYCMOdydn4EHb6VIKJ6lwRSgFvqBP@dpg-cvs2r2ngi27c73agoma0-a/tycord_instant_messaging
       - JWT_SECRET=your_jwt_secret_here
       - NODE_ENV=development
       - PORT=3000
@@ -18,9 +18,9 @@ services:
     image: postgres:13-alpine
     container_name: postgres-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: tycord
+      POSTGRES_USER: tycord_instant_messaging_user
+      POSTGRES_PASSWORD: 13xQYCMOdydn4EHb6VIKJ6lwRSgFvqBP
+      POSTGRES_DB: tycord_instant_messaging
     ports:
       - "5432:5432"
     volumes:

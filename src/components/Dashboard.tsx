@@ -57,7 +57,7 @@ interface Conversation {
 }
 
 const Dashboard = () => {
-  const apiBase = "http://localhost:3000/";
+  const apiBase = process.env.API_BASE + "/";
   const token = localStorage.getItem("token") || "";
   const [userData, setUserData] = useState<CurrentUser | null>(null);
   const [showProfileEditor, setShowProfileEditor] = useState(false);

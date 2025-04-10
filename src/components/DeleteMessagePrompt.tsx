@@ -10,7 +10,7 @@ const DeleteMessagePrompt = ({
   fetchMessages: (currentConversation: number) => Promise<void>;
 }) => {
 
-    const apiBase = "http://localhost:3000/";
+    const apiBase = process.env.API_BASE + "/";
     const token = localStorage.getItem("token") || "";
 
     async function deleteMessage(messageId: number) {

@@ -7,7 +7,7 @@ const SignUp = () => {
   const [usernameInput, setUsernameInput] = useState("");
   const [nicknameInput, setNicknameInput] = useState("");
 
-  const apiBase = "http://localhost:3000/auth/register";
+  const apiBase = process.env.API_BASE + "/auth/register";
 
   const navigate = useNavigate();
 
