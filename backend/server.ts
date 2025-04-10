@@ -18,7 +18,7 @@ const __dirname = path.dirname(__filename);
 
 // CORS Configuration
 const corsOptions = {
-  origin: process.env.API_BASE, // Adjust as needed
+  origin: "/", // Adjust as needed
   methods: "GET, POST, PUT, DELETE",
   allowedHeaders: "Content-Type, Authorization",
 };

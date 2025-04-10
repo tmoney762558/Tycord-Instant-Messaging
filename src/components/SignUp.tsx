@@ -7,7 +7,7 @@ const SignUp = () => {
   const [usernameInput, setUsernameInput] = useState("");
   const [nicknameInput, setNicknameInput] = useState("");
 
-  const apiBase = process.env.API_BASE + "/auth/register";
+  const apiBase = "/auth/register";
 
   const navigate = useNavigate();
 

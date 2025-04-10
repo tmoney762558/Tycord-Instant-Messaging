@@ -5,7 +5,7 @@ const Login = () => {
   const [emailInput, setEmailInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
 
-  const apiBase = process.env.API_BASE + "/auth/login";
+  const apiBase = "/auth/login";
 
   const navigate = useNavigate();
 
