@@ -32,7 +32,7 @@ const ProfileEditor = ({
   showProfileEditor,
   setShowProfileEditor,
 }: {
-  fetchUserData: () => {};
+  fetchUserData: () => void;
   userData: CurrentUser | null;
   showProfileEditor: boolean;
   setShowProfileEditor: React.Dispatch<React.SetStateAction<boolean>>;
@@ -64,6 +64,10 @@ const ProfileEditor = ({
       });
 
       const apiData = await response.json();
+
+      if (apiData.message) {
+        return alert(apiData.message);
+      }
 
       if (apiData) {
         fetchUserData();

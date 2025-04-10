@@ -1,10 +1,20 @@
+/* eslint-disable @typescript-eslint/no-namespace */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import express from "express";
-import prisma from "../PrismaClient.js";
+import prisma from "../PrismaClient.ts";
+
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: number;
+    }
+  }
+}
 
 const router = express.Router();
 
 // Get all messages for a conversation
-router.get("/:convoId", async (req, res) => {
+router.get("/:convoId", async (req: express.Request, res: express.Response): Promise<any> => {
   const { convoId } = req.params;
   const userId = req.userId;
 
@@ -49,13 +59,17 @@ router.get("/:convoId", async (req, res) => {
 });
 
 // Create a new message
-router.post("/:convoId", async (req, res) => {
+router.post("/:convoId", async (req: express.Request, res: express.Response): Promise<any> => {
   const { convoId } = req.params;
   const { messageContent } = req.body;
   const userId = req.userId;
 
+  if (!userId) {
+    return res.send({ message: "Unauthorized" });
+  }
+
   if (!convoId) {
-    return res.send({ message: "Conversation ID not found." });
+    return res.send({ message: "Conversation ID not provided." });
   }
 
   const userInConversation = await prisma.conversation.findUnique({
@@ -76,7 +90,7 @@ router.post("/:convoId", async (req, res) => {
   const message = await prisma.message.create({
     data: {
       conversationId: parseInt(convoId),
-      userId,
+      userId: userId,
       content: messageContent,
     },
   });
@@ -85,7 +99,7 @@ router.post("/:convoId", async (req, res) => {
 });
 
 // Delete a message
-router.delete("/:convoId", async (req, res) => {
+router.delete("/:convoId", async (req: express.Request, res: express.Response): Promise<any> => {
   try {
     const userId = req.userId;
     const { convoId } = req.params;
@@ -103,7 +117,7 @@ router.delete("/:convoId", async (req, res) => {
     });
 
     if (!deletedMessage) {
-      return req.status(404).json({
+      return res.status(404).json({
         message:
           "Message could not be found. Are you authorized to delete this message?",
       });

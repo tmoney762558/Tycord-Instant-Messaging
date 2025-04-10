@@ -2,11 +2,11 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url"; // Required to define __dirname in ES modules
-import authRoutes from "./routes/authRoutes.js";
-import authMiddleware from "./middleware/authMiddleware.js";
-import userRoutes from "./routes/userRoutes.js";
-import conversationRoutes from "./routes/conversationRoutes.js";
-import messageRoutes from "./routes/messageRoutes.js";
+import authRoutes from "./routes/authRoutes.ts";
+import authMiddleware from "./middleware/authMiddleware.ts";
+import userRoutes from "./routes/userRoutes.ts";
+import conversationRoutes from "./routes/conversationRoutes.ts";
+import messageRoutes from "./routes/messageRoutes.ts";
 
 const app = express();
 const PORT = 3000;
@@ -23,6 +23,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads"))); // Serve static files from the uploads folder
 
 app.use("/auth", authRoutes);

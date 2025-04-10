@@ -24,10 +24,11 @@ const Login = () => {
 
       const apiData = await response.json();
 
-      console.log(apiData);
+      if (apiData.message) {
+        return alert(apiData.message);
+      }
 
       if (apiData.token) {
-        console.log("Token retrieved.", apiData.token);
         localStorage.setItem("token", apiData.token);
         navigate("/dashboard");
       }

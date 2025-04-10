@@ -85,6 +85,10 @@ const ConversationTab = ({
 
       const apiData = await response.json();
 
+      if (apiData.message) {
+        return alert(apiData.message);
+      }
+
       if (apiData) {
         fetchConversations();
       }
@@ -101,7 +105,7 @@ const ConversationTab = ({
             className="w-10 aspect-square rounded-full"
             src={conversationImage}
           ></img>
-          <p className="text-xl text-white font-mono">{conversationName}</p>
+          <p className="w-full lg:max-w-[20rem] md:max-w-[15rem] max-w-[7.5rem] text-ellipsis text-xl text-white font-mono overflow-x-hidden whitespace-nowrap">{conversationName}</p>
         </div>
         <div className="flex items-center gap-3">
         <button

@@ -9,14 +9,14 @@ const ConversationMenu = ({
   setShowConversationMenu,
   setRecipients,
 }: {
-  recipients: String[];
+  recipients: string[];
   fetchConversations: () => Promise<void>;
   setShowConversationMenu: React.Dispatch<React.SetStateAction<boolean>>;
-  setRecipients: React.Dispatch<React.SetStateAction<String[]>>;
+  setRecipients: React.Dispatch<React.SetStateAction<string[]>>;
 }) => {
   const apiBase = "http://localhost:3000/";
   const token = localStorage.getItem("token") || "";
-  const [conversationImage, setConversationImage] = useState<File | null>(null)
+  const [conversationImage, setConversationImage] = useState<File | null>(null);
   const [conversationNameInput, setConversationNameInput] = useState("");
   const recipientInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -35,8 +35,6 @@ const ConversationMenu = ({
         formData.append("recipientUsernames", JSON.stringify(recipients));
       }
 
-      console.log("Convo Image:", conversationImage)
-
       const response = await fetch(apiBase + "conversations", {
         method: "POST",
         headers: {
@@ -47,8 +45,11 @@ const ConversationMenu = ({
 
       const apiData = await response.json();
 
+      if (apiData.message) {
+        return alert(apiData.message);
+      }
+
       if (apiData) {
-        console.log("Success");
         fetchConversations();
       }
     } catch (err) {
@@ -84,7 +85,9 @@ const ConversationMenu = ({
             ></IoIosClose>
           </div>
         </div>
-        <label className="text-xl text-neutral-300 font-bold">Conversation Image</label>
+        <label className="text-xl text-neutral-300 font-bold">
+          Conversation Image
+        </label>
         <img
           className="w-[7.5rem] aspect-square mt-3 border-6 border-black rounded-full shadow-sm shadow-black"
           src={
@@ -93,19 +96,22 @@ const ConversationMenu = ({
               : defaultPFP
           }
         ></img>
-        <label className="mt-5 py-1 px-6 bg-white border-2 border-black rounded-full text-black font-mono shadow-lg shadow-black cursor-pointer" htmlFor="imageInput">
+        <label
+          className="mt-5 py-1 px-6 bg-white border-2 border-black rounded-full text-black font-mono shadow-lg shadow-black cursor-pointer"
+          htmlFor="imageInput"
+        >
           Upload Image
-        <input
-        id="imageInput"
-        className="hidden"
-          type="file"
-          accept=".png,.jpg,.webp,.gif"
-          onChange={(e) => {
-            if (e.currentTarget.files) {
-              setConversationImage(e.currentTarget.files[0])
-            }
-          }}
-        ></input>
+          <input
+            id="imageInput"
+            className="hidden"
+            type="file"
+            accept=".png,.jpg,.webp,.gif"
+            onChange={(e) => {
+              if (e.currentTarget.files) {
+                setConversationImage(e.currentTarget.files[0]);
+              }
+            }}
+          ></input>
         </label>
         <label className="w-full mt-3 text-left text-xl text-neutral-300 font-bold">
           Conversation Name

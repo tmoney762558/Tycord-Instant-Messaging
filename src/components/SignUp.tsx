@@ -28,6 +28,10 @@ const SignUp = () => {
 
       const apiData = await response.json();
 
+      if (apiData.message) {
+        return alert(apiData.message);
+      }
+
       if (!apiData) {
         alert("Error occured when creating account. Please try again later.");
       }

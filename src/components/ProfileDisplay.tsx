@@ -44,7 +44,7 @@ const ProfileDisplay = ({
   setShowProfile: React.Dispatch<React.SetStateAction<boolean>>;
   profileNick: string;
   profileUser: string;
-  setRecipients: React.Dispatch<React.SetStateAction<String[]>>;
+  setRecipients: React.Dispatch<React.SetStateAction<string[]>>;
   setShowConversationMenu: React.Dispatch<React.SetStateAction<boolean>>;
   createFriendRequest: (userToAdd: string) => Promise<void>;
   profileBio: string;

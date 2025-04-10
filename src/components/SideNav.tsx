@@ -41,8 +41,8 @@ const SideNav = ({
   const navigate = useNavigate();
 
   return (
-    <nav className={`${currentTab === "Direct Messages" ? "flex" : "md:flex hidden"} flex-col items-center shrink-0 relative p-6 bg-slate-950`}>
-      <button className="lg:p-2 p-1 bg-slate-800 hover:bg-red-400 rounded-full cursor-pointer" onClick={() => {
+    <nav className={`${currentTab === "Direct Messages" ? "flex" : "md:flex hidden"} flex-col items-center shrink-0 relative lg:p-6 p-2 bg-slate-950`}>
+      <button className="p-3 bg-slate-800 hover:bg-red-400 rounded-full cursor-pointer" onClick={() => {
         setCurrentTab("Direct Messages");
       }}>
         <HiPaperAirplane fontSize={"1.7rem"} fill="white"></HiPaperAirplane>

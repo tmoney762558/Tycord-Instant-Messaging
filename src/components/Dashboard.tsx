@@ -2,8 +2,8 @@ import Conversation from "./Conversation";
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setMessages } from "../reduxStore/slices/messagesSlice";
-import ProfileEditor from "./ProfileEditor";
 import { useNavigate } from "react-router-dom";
+import ProfileEditor from "./ProfileEditor";
 import SideNav from "./SideNav";
 import DirectMessagesTab from "./DirectMessagesTab";
 import FriendTab from "./FriendTab";
@@ -61,16 +61,16 @@ const Dashboard = () => {
   const token = localStorage.getItem("token") || "";
   const [userData, setUserData] = useState<CurrentUser | null>(null);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
+  const [showConversationMenu, setShowConversationMenu] = useState(false);
+  const [recipients, setRecipients] = useState<string[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [convoId, setConvoId] = useState(-1); // Convo Id = -1 === No Conversation Selected
-  const [showConversationMenu, setShowConversationMenu] = useState(false);
-  const [recipients, setRecipients] = useState<String[]>([]);
   const [conversationName, setConversationName] = useState("");
   const [conversationImage, setConversationImage] = useState("");
+  const [messageInput, setMessageInput] = useState("");
   const messages = useSelector(
     (state: MessageState) => state.messages.messages
   );
-  const [messageInput, setMessageInput] = useState("");
   const [currentMessage, setCurrentMessage] = useState(-1);
   const [showDeleteMessagePrompt, setShowDeleteMessagePrompt] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -85,9 +85,11 @@ const Dashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  // Fetch user data and the conversations they are a part of
   useEffect(() => {
     fetchUserData();
     fetchConversations();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetches data for user
@@ -102,6 +104,10 @@ const Dashboard = () => {
 
       const apiData = await response.json();
 
+      if (apiData.message) {
+        return alert(apiData.message);
+      }
+
       if (apiData) {
         setUserData(apiData);
       } else {
@@ -114,7 +120,8 @@ const Dashboard = () => {
 
   // Fetches all conversations for a user
   async function fetchConversations() {
-    const apiData = await fetch(apiBase + "conversations", {
+    try {
+    const repsponse = await fetch(apiBase + "conversations", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -122,9 +129,15 @@ const Dashboard = () => {
       },
     });
 
-    const fetchedConversations = await apiData.json();
+    const apiData = await repsponse.json();
 
-    setConversations(fetchedConversations);
+    if (apiData.message) {
+      return alert(apiData.message);
+    }
+
+    setConversations(apiData);} catch(err) {
+      console.log(err);
+    }
   }
 
   async function fetchMessages(currentConversation: number) {
@@ -140,6 +153,11 @@ const Dashboard = () => {
       );
 
       const apiData = await response.json();
+
+      if (apiData.message) {
+        return alert(apiData.message);
+      }
+      
 
       if (!apiData) {
         console.log("Something went wrong while fetching the data.");
@@ -167,6 +185,10 @@ const Dashboard = () => {
       });
 
       const apiData = await response.json();
+
+      if (apiData.message) {
+        return alert(apiData.message);
+      }
 
       if (!apiData) {
         alert("Something went wrong while sending your message.");

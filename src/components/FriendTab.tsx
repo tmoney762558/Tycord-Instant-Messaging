@@ -49,7 +49,7 @@ const FriendTab = ({
   fetchUserData: () => Promise<void>;
   userData: CurrentUser | null;
   setShowConversationMenu: React.Dispatch<React.SetStateAction<boolean>>;
-  setRecipients: React.Dispatch<React.SetStateAction<String[]>>;
+  setRecipients: React.Dispatch<React.SetStateAction<string[]>>;
   setProfileUser: React.Dispatch<React.SetStateAction<string>>;
   setProfileNick: React.Dispatch<React.SetStateAction<string>>;
   setProfileAvatar: React.Dispatch<React.SetStateAction<string>>;
@@ -76,6 +76,10 @@ const FriendTab = ({
 
       const apiData = await response.json();
 
+      if (apiData.message) {
+        return alert(apiData.message);
+      }
+
       if (apiData) {
         fetchUserData();
       }
@@ -99,6 +103,10 @@ const FriendTab = ({
       });
 
       const apiData = await response.json();
+
+      if (apiData.message) {
+        return alert(apiData.message);
+      }
 
       if (apiData) {
         fetchUserData();
@@ -124,6 +132,10 @@ const FriendTab = ({
 
       const apiData = await response.json();
 
+      if (apiData.message) {
+        return alert(apiData.message);
+      }
+
       if (apiData) {
         fetchUserData();
       }
@@ -147,6 +159,10 @@ const FriendTab = ({
       });
 
       const apiData = await response.json();
+
+      if (apiData.message) {
+        return alert(apiData.message);
+      }
 
       if (apiData) {
         fetchUserData();
