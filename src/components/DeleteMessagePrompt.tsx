@@ -36,13 +36,15 @@ const DeleteMessagePrompt = ({
             fetchMessages(convoId);
           }
           
-        } catch (err) {}
+        } catch (err) {
+          console.log(err);
+        }
       }
 
   return (
     <div className="flex justify-center items-center absolute left-0 top-0 w-screen h-screen px-5 bg-[rgba(0, 0, 0, 0.10)] backdrop-blur-sm z-10 cursor-auto">
-      <div className="flex flex-col justify-center w-full max-w-[30rem] aspect-[2/1.8] p-5 bg-slate-900 rounded-lg shadow-lg shadow-black">
-        <label className="flex justify-center w-full text-center text-xl text-white font-bold">
+      <div className="flex flex-col justify-center items-center w-full max-w-[30rem] aspect-[2/1.8] p-5 bg-slate-900 rounded-lg shadow-lg shadow-black">
+        <label className="flex justify-center w-2/3 text-center text-xl text-white font-bold">
           Are you sure you want to delete this message?
         </label>
         <div className="flex justify-center gap-5 w-full mt-10">
