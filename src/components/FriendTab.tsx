@@ -271,8 +271,8 @@ const FriendTab = ({
         ) : (
           <div className="w-full mt-7">
             <div className="w-full mt-3">
-              <div className="flex justify-center items-center w-full py-3 bg-slate-900 rounded-lg shadow-lg shadow-black">
-                <h2 className="text-xl text-white font-bold">
+              <div className="flex flex-col justify-center items-center w-full rounded-lg shadow-lg shadow-black">
+                <h2 className="w-full py-3 bg-slate-900 text-xl text-white font-bold">
                   Incoming Requests - {userData?.friendRequests.length || 0}
                 </h2>
               </div>
@@ -318,8 +318,8 @@ const FriendTab = ({
                 </div>
               ))}
             </div>
-            <div className="flex justify-center items-center w-full mt-5 py-3 bg-slate-900 rounded-lg shadow-lg shadow-black">
-              <h2 className="text-xl text-white font-bold">
+            <div className="flex flex-col justify-center items-center w-full rounded-lg shadow-lg shadow-black mt-5">
+              <h2 className="w-full py-3 bg-slate-900 text-xl text-white font-bold">
                 Outgoing Requests - {userData?.friendRequestsSent.length || 0}
               </h2>
               {userData?.friendRequestsSent.map((request, index) => (
