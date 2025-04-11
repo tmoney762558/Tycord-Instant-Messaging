@@ -211,10 +211,16 @@ const FriendTab = ({
             </p>
           </div>
         </div>
-        <div className="lg:hidden block absolute right-3 bg-white rounded-full" onClick={() => {
-          setCurrentTab("Direct Messages")
-        }}>
-          <IoArrowBackCircle fontSize={"2rem"} fill="oklch(0.704 0.191 22.216)"></IoArrowBackCircle>
+        <div
+          className="lg:hidden block absolute right-3 bg-white rounded-full"
+          onClick={() => {
+            setCurrentTab("Direct Messages");
+          }}
+        >
+          <IoArrowBackCircle
+            fontSize={"2rem"}
+            fill="oklch(0.704 0.191 22.216)"
+          ></IoArrowBackCircle>
         </div>
       </div>
       <div className="flex flex-col items-center w-full mt-5 px-4">
@@ -271,8 +277,8 @@ const FriendTab = ({
         ) : (
           <div className="w-full mt-7">
             <div className="w-full mt-3">
-              <div className="flex flex-col justify-center items-center w-full rounded-lg shadow-lg shadow-black">
-                <h2 className="w-full py-3 bg-slate-900 text-xl text-white font-bold">
+              <div className="flex flex-col justify-center items-center w-full rounded-lg">
+                <h2 className="w-full py-3 bg-slate-900 shadow-lg shadow-black text-center text-xl text-white font-bold">
                   Incoming Requests - {userData?.friendRequests.length || 0}
                 </h2>
               </div>
@@ -318,8 +324,8 @@ const FriendTab = ({
                 </div>
               ))}
             </div>
-            <div className="flex flex-col justify-center items-center w-full rounded-lg shadow-lg shadow-black mt-5">
-              <h2 className="w-full py-3 bg-slate-900 text-xl text-white font-bold">
+            <div className="flex flex-col justify-center items-center w-full rounded-lg">
+              <h2 className="w-full py-3 bg-slate-900 shadow-lg shadow-black text-center text-xl text-white font-bold">
                 Outgoing Requests - {userData?.friendRequestsSent.length || 0}
               </h2>
               {userData?.friendRequestsSent.map((request, index) => (
