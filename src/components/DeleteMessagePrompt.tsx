@@ -1,3 +1,5 @@
+import { socket } from "../socket";
+
 const DeleteMessagePrompt = ({
   setShowDeleteMessagePrompt,
   convoId,
@@ -9,37 +11,32 @@ const DeleteMessagePrompt = ({
   currentMessage: number;
   fetchMessages: (currentConversation: number) => Promise<void>;
 }) => {
+  const apiBase = "http://localhost:3000/";
+  const token = localStorage.getItem("token") || "";
 
-    const apiBase = "/";
-    const token = localStorage.getItem("token") || "";
+  async function deleteMessage(messageId: number) {
+    try {
+      const response = await fetch(apiBase + "messages/" + convoId, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token,
+        },
+        body: JSON.stringify({
+          messageId: messageId,
+        }),
+      });
 
-    async function deleteMessage(messageId: number) {
-        try {
-          const response = await fetch(apiBase + "messages/" + convoId, {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: token,
-            },
-            body: JSON.stringify({
-              messageId: messageId,
-            }),
-          });
-    
-          const apiData = await response.json();
-
-          if (apiData.message) {
-            return alert(apiData.message);
-          }
-    
-          if (apiData) {
-            fetchMessages(convoId);
-          }
-          
-        } catch (err) {
-          console.log(err);
-        }
+      if (response.ok) {
+        fetchMessages(convoId);
+      } else {
+        const apiData = await response.json();
+        alert(apiData.message);
       }
+    } catch (err) {
+      console.log(err);
+    }
+  }
 
   return (
     <div className="flex justify-center items-center absolute left-0 top-0 w-screen h-screen px-5 bg-[rgba(0, 0, 0, 0.10)] backdrop-blur-sm z-10 cursor-auto">
@@ -59,6 +56,7 @@ const DeleteMessagePrompt = ({
           <button
             className="w-1/3 h-10 bg-blue-400 rounded-sm shadow-lg shadow-black text-lg text-white font-bold cursor-pointer"
             onClick={() => {
+              socket.emit("new_message", token, convoId);
               deleteMessage(currentMessage);
               setShowDeleteMessagePrompt(false);
             }}

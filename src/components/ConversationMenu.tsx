@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { IoIosClose } from "react-icons/io";
 import { IoAdd, IoClose } from "react-icons/io5";
 import defaultPFP from "../assets/defaultPFP.jpg";
+import { socket } from "../socket";
 
 const ConversationMenu = ({
   recipients,
@@ -14,7 +15,7 @@ const ConversationMenu = ({
   setShowConversationMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setRecipients: React.Dispatch<React.SetStateAction<string[]>>;
 }) => {
-  const apiBase = "/";
+  const apiBase = "http://localhost:3000/";
   const token = localStorage.getItem("token") || "";
   const [conversationImage, setConversationImage] = useState<File | null>(null);
   const [conversationNameInput, setConversationNameInput] = useState("");
@@ -45,12 +46,11 @@ const ConversationMenu = ({
 
       const apiData = await response.json();
 
-      if (apiData.message) {
-        return alert(apiData.message);
-      }
-
-      if (apiData) {
+      if (response.ok) {
+        socket.emit("new_conversation", token, recipients)
         fetchConversations();
+      } else {
+        alert(apiData.message);
       }
     } catch (err) {
       console.log(err);

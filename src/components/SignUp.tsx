@@ -7,7 +7,7 @@ const SignUp = () => {
   const [usernameInput, setUsernameInput] = useState("");
   const [nicknameInput, setNicknameInput] = useState("");
 
-  const apiBase = "/auth/register";
+  const apiBase = "http://localhost:3000/auth/register";
 
   const navigate = useNavigate();
 
@@ -48,7 +48,7 @@ const SignUp = () => {
   }
 
   return (
-    <div className="flex w-full min-h-screen justify-center items-center bg-slate-900">
+    <div className="flex w-full min-h-screen justify-center items-center bg-slate-900 px-3">
       <form
         className="flex flex-col gap-5 w-full max-w-[20rem]"
         onSubmit={(e) => {

@@ -1,21 +1,12 @@
-/* eslint-disable @typescript-eslint/no-namespace */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import express from "express";
-import prisma from "../PrismaClient.ts";
+import pool from "../db.ts";
 import upload from "./multerConfig.ts";
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
-      userId?: number;
-    }
-  }
-}
-
-declare global {
-  namespace Express {
-    interface Request {
-      file?: any;
+      userId: number;
     }
   }
 }
@@ -23,578 +14,679 @@ declare global {
 const router = express.Router();
 
 // Get user data
-router.get("/", async (req: express.Request, res: express.Response): Promise<any> => {
-  try {
-    const userId = (req as express.Request & { userId: number }).userId;
+router.get(
+  "/",
+  async (req: express.Request, res: express.Response): Promise<void> => {
+    try {
+      const userId = req.userId;
 
-    const userData = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-      select: {
-        createdAt: true,
-        username: true,
-        nickname: true,
-        avatar: true,
-        bio: true,
-        friends: {
-          select: {
-            username: true,
-            nickname: true,
-            avatar: true,
-            bio: true,
-          },
-        },
-        friendRequests: {
-          select: {
-            username: true,
-            nickname: true,
-            avatar: true,
-            bio: true,
-          },
-        },
-        friendRequestsSent: {
-          select: {
-            username: true,
-            nickname: true,
-            avatar: true,
-            bio: true,
-          },
-        },
-      },
-    });
+      if (!userId) {
+        res.status(500).json({ message: "Authentication error." });
+        return;
+      }
 
-    return res.status(200).json(userData);
-  } catch (err) {
-    console.log(err);
-    return res.status(500).json({ message: "Internal Server Error" });
+      const userData = await pool.query(
+        `
+      SELECT createdAt, username, nickname, avatar, bio
+      FROM users
+      WHERE id = $1
+      `,
+        [userId]
+      );
+
+      const friends = await pool.query(
+        `
+        SELECT u.username, u.nickname, u.avatar, u.bio
+        FROM friends f
+        JOIN users u
+          ON (u.id = f.friend_id AND f.user_id = $1)
+            OR (u.id = f.user_id AND f.friend_id = $1)
+        `,
+        [userId]
+      );
+
+      const incomingFR = await pool.query(
+        `
+          SELECT u.username, u.nickname, u.avatar, u.bio
+          FROM friend_requests fr
+          JOIN users u
+            ON u.id = fr.requester_id
+          WHERE fr.receiver_id = $1
+          `,
+        [userId]
+      );
+
+      const outgoingFR = await pool.query(
+        `
+        SELECT u.username, u.nickname, u.avatar, u.bio
+        FROM friend_requests fr
+        JOIN users u
+          ON u.id = fr.receiver_id
+        WHERE fr.requester_id = $1
+        `,
+        [userId]
+      );
+
+      const finalUserData = {
+        createdAt: userData.rows[0].createdAt,
+        username: userData.rows[0].username,
+        nickname: userData.rows[0].nickname,
+        avatar: userData.rows[0].avatar,
+        bio: userData.rows[0].bio,
+        friends: friends.rows,
+        friendRequests: incomingFR.rows,
+        friendRequestsSent: outgoingFR.rows,
+      };
+
+      res.status(200).json(finalUserData);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+      return;
+    }
   }
-});
+);
 
 // Update user data
-router.put("/", upload.single("newAvatar"), async (req: express.Request, res: express.Response): Promise<any> => {
-  try {
-    const userId = (req as express.Request & { userId: number }).userId;
-    const { newUsername, newNickname, newBio } = req.body;
-    const newAvatar = req.file ? `/uploads/${req.file.filename}` : null;
+router.put(
+  "/",
+  upload.single("newAvatar"),
+  async (req: express.Request, res: express.Response): Promise<void> => {
+    const client = await pool.connect();
+    try {
+      const userId = req.userId;
+      const { newUsername, newNickname } = req.body;
+      const newBio = req.body.newBio || "";
+      const newAvatar = req.file ? `/uploads/${req.file.filename}` : null;
 
-    // Select the current state of the user to avoid unique constraint violations
-    const currentUser = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-      select: {
-        username: true,
-        nickname: true,
-        avatar: true,
-        bio: true,
-      },
-    });
-
-    // Check if current user can be found
-    if (!currentUser) {
-      return res
-        .status(400)
-        .json({ message: "Current user could not be found." });
-    }
-
-    const updatedData: {
-      username?: string;
-      nickname?: string;
-      avatar?: string;
-      bio?: string;
-    } = {};
-
-    if (newUsername && currentUser.username !== newUsername) {
-      updatedData.username = newUsername;
-    }
-
-    if (newNickname && currentUser.nickname !== newNickname) {
-      updatedData.nickname = newNickname;
-    }
-
-    if (newAvatar && currentUser.avatar !== newAvatar) {
-      updatedData.avatar = newAvatar;
-    }
-
-    if (newBio && currentUser.bio !== newBio) {
-      updatedData.bio = newBio;
-    }
-
-    if (Object.keys(updatedData).length === 0) {
-      return res.status(403).json({ message: "Fields were not modified." });
-    }
-
-    if (updatedData.username) {
-      const usernameIsTaken = await prisma.user.findUnique({
-        where: {
-          username: updatedData.username,
-        },
-      });
-
-      if (usernameIsTaken) {
-        return res.status(403).json({ message: "Username is taken." });
+      if (!userId) {
+        res.status(500).json({ message: "Authentication error." });
+        return;
       }
+
+      if (
+        typeof newUsername !== "string" ||
+        typeof newNickname !== "string" ||
+        typeof newBio !== "string"
+      ) {
+        res.status(400).json({ message: "Invalid payload." });
+        return;
+      }
+
+      if (newUsername.length >= 12) {
+        res.status(400).json({
+          message:
+            "Username too long. Usernames must be 12 characters or shorter.",
+        });
+        return;
+      }
+
+      if (newNickname.length >= 12) {
+        res.status(400).json({
+          message:
+            "Nickname too long. Nicknames must be 12 characters or shorter.",
+        });
+        return;
+      }
+
+      if (newBio.length >= 50) {
+        res.status(400).json({
+          message: "Bio too long. User bios must be 50 characters or shorter.",
+        });
+        return;
+      }
+
+      // Select the current state of the user to avoid unique constraint violations
+      const currentUser = await client.query(
+        `
+        SELECT username, nickname, avatar, bio
+        FROM users
+        WHERE id = $1
+        `,
+        [userId]
+      );
+
+      if (!currentUser) {
+        res.status(400).json({ message: "Current user could not be found." });
+        return;
+      }
+
+      const updatedData: string[] = [];
+      const values: string[] = [];
+      let index = 1;
+
+      if (newUsername && currentUser.rows[0].username !== newUsername) {
+        updatedData.push(`username = $${index++}`);
+        values.push(newUsername);
+      }
+
+      if (newNickname && currentUser.rows[0].nickname !== newNickname) {
+        updatedData.push(`nickname = $${index++}`);
+        values.push(newNickname);
+      }
+
+      if (newAvatar && currentUser.rows[0].avatar !== newAvatar) {
+        updatedData.push(`avatar = $${index++}`);
+        values.push(newAvatar);
+      }
+
+      if (newBio && currentUser.rows[0].bio !== newBio) {
+        updatedData.push(`bio = $${index++}`);
+        values.push(newBio);
+      }
+
+      if (updatedData.length === 0) {
+        res.status(403).json({ message: "Fields were not modified." });
+        return;
+      }
+
+      // Check if the new username is taken or not
+      if (newUsername && newUsername !== currentUser.rows[0].username) {
+        const usernameIsTaken = await client.query(
+          `
+              SELECT 1
+              FROM users
+              WHERE username = $1
+            `,
+          [newUsername]
+        );
+
+        if (usernameIsTaken.rows.length !== 0) {
+          res.status(403).json({ message: "Username is taken." });
+          return;
+        }
+      }
+
+      await client.query(
+        `
+        UPDATE users
+        SET ${updatedData.join(" ,")}
+        WHERE id = $${index}
+        `,
+        [...values, userId]
+      );
+
+      res.status(200).json({ message: "User successfully updated" });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
     }
-
-    const updatedUser = await prisma.user.update({
-      where: {
-        id: userId,
-      },
-      data: updatedData,
-    });
-
-    return res.json(updatedUser);
-  } catch (err) {
-    console.log(err);
   }
-});
+);
 
 // Send a friend request
-router.put("/sendFriendRequest", async (req: express.Request, res: express.Response): Promise<any> => {
-  const userId = (req as express.Request & { userId: number }).userId;
-  const { userToAdd } = req.body;
+router.post(
+  "/sendFriendRequest",
+  async (req: express.Request, res: express.Response): Promise<void> => {
+    const client = await pool.connect();
+    try {
+      const userId = req.userId;
+      const { userToAdd } = req.body;
 
-  const userToAddIsValid = await prisma.user.findUnique({
-    // Check if the user to add is valid (Requester isn't already a friend or blocked)
-    where: {
-      NOT: {
-        id: userId,
-      },
-      username: userToAdd,
-      friends: {
-        none: {
-          id: userId,
-        },
-      },
-      friendRequests: {
-        none: {
-          id: userId,
-        },
-      },
-      friendRequestsSent: {
-        none: {
-          username: userToAdd,
-        },
-      },
-      blockedUsers: {
-        none: {
-          id: userId,
-        },
-      },
-    },
-    select: {
-      username: true, // Grabs only the username to avoid getting unneccessary fields
-      friends: true,
-      blockedUsers: true,
-    },
-  });
+      if (!userId) {
+        res.status(500).json({ message: "Authentication error." });
+        return;
+      }
 
-  if (!userToAddIsValid) {
-    return res.status(404).json({ message: "Specified user is invalid." });
+      // Check if valid user to add is provided
+      if (!userToAdd || typeof userToAdd !== "string") {
+        res.status(400).json({ message: "User to add was not provided." });
+      }
+
+      await client.query("BEGIN");
+
+      // Check if the user to be added is not the current user, a friend, or someone without an outgoing / incoming friend request (and grab the id)
+      const userToAddIsValid = await client.query(
+        `
+      SELECT u.id
+      FROM users u
+      WHERE u.username = $1
+        AND u.id != $2
+        AND NOT EXISTS (
+          SELECT 1 FROM friends f
+          WHERE (f.user_id = u.id AND f.friend_id = $2)
+            OR (f.friend_id = u.id AND f.user_id = $2)
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM friend_requests fr
+          WHERE (fr.requester_id = u.id AND fr.receiver_id = $2)
+            OR (fr.receiver_id = u.id AND fr.requester_id = $2)
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM blocked_users bu
+          WHERE (bu.blocker_id = u.id AND bu.blocked_id = $2)
+            OR (bu.blocked_id = u.id AND bu.blocker_id = $2)
+        )
+      `,
+        [userToAdd, userId]
+      );
+
+      if (userToAddIsValid.rows.length === 0) {
+        res.status(404).json({ message: "Specified user is invalid." });
+        return;
+      }
+
+      const userToAddId = userToAddIsValid.rows[0].id;
+
+      await client.query(
+        `
+      INSERT INTO friend_requests (requester_id, receiver_id)
+      VALUES ($1, $2)
+      `,
+        [userId, userToAddId]
+      );
+
+      await client.query("COMMIT");
+
+      res.status(200).json({ message: "Friend request successfully sent." });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    } finally {
+      client.release();
+    }
   }
-
-  // Adds the outgoing friend request to the user initiating the request
-  const sendingUser = await prisma.user.update({
-    where: {
-      id: userId,
-    },
-    data: {
-      friendRequestsSent: {
-        connect: {
-          username: userToAdd,
-        },
-      },
-    },
-  });
-
-  // Adds the friend request from user1 to user2
-  await prisma.user.update({
-    where: {
-      username: userToAdd,
-    },
-    data: {
-      friendRequests: {
-        connect: {
-          id: userId,
-        },
-      },
-    },
-  });
-
-  return res.json(sendingUser);
-});
+);
 
 // Accept a friend request
-router.put("/acceptRequest", async (req: express.Request, res: express.Response): Promise<any> => {
-  const userId = (req as express.Request & { userId: number }).userId;
-  const { requestingUser } = req.body; // The requesting user's username
+router.post(
+  "/acceptRequest",
+  async (req: express.Request, res: express.Response): Promise<void> => {
+    const client = await pool.connect();
+    try {
+      const userId = req.userId;
+      const { requestingUser } = req.body; // The requesting user's username
 
-  const isAddingSelf = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
-  });
+      if (!userId) {
+        res.status(500).json({ message: "Authentication error." });
+        return;
+      }
 
-  if (isAddingSelf && isAddingSelf.username === requestingUser) {
-    return res.send(403).send({ message: "Users cannot add themselves!" });
+      // Check if valid requesting user is provided
+      if (!requestingUser || typeof requestingUser !== "string") {
+        res.status(400).json({ message: "Requesting user was not provided." });
+        return;
+      }
+
+      client.query("BEGIN");
+
+      // Ensure the user that is being added is valid (actually exists and is not the current user) and grab its id
+      const addedUserIsValid = await client.query(
+        `
+      SELECT id
+      FROM users
+      WHERE username = $1
+        AND id != $2
+      `,
+        [requestingUser, userId]
+      );
+
+      if (addedUserIsValid.rows.length === 0) {
+        res.status(400).json({ message: "User to friend could not be found." });
+        return;
+      }
+
+      const addedUserId = addedUserIsValid.rows[0].id;
+
+      // Ensure that the request the user is accepting actually exists
+      const requestExists = await client.query(
+        `
+        SELECT 1
+        FROM friend_requests
+        WHERE requester_id = $1
+          AND receiver_id = $2
+        `,
+        [addedUserId, userId]
+      );
+
+      if (requestExists.rows.length === 0) {
+        res.status(400).json({ message: "Friend request could not be found." });
+        return;
+      }
+
+      // Insert new record into the friends table
+      await client.query(
+        `
+      INSERT INTO friends (user_id, friend_id)
+      VALUES ($1, $2)
+      `,
+        [addedUserId, userId]
+      );
+
+      // Delete the corresponding friend_request record
+      await client.query(
+        `
+      DELETE FROM friend_requests
+      WHERE requester_id = $1
+        AND receiver_id = $2
+      `,
+        [addedUserId, userId]
+      );
+
+      client.query("COMMIT");
+
+      res.json({ message: "Successfully friended user." });
+    } catch (err) {
+      client.query("ROLLBACK");
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    } finally {
+      client.release();
+    }
   }
-
-  const updatedAccepter = await prisma.user.update({
-    where: {
-      id: userId,
-    },
-    data: {
-      friendRequests: {
-        disconnect: {
-          username: requestingUser,
-        },
-      },
-      friends: {
-        connect: {
-          username: requestingUser,
-        },
-      },
-    },
-    select: {
-      username: true,
-      nickname: true,
-      friends: true,
-      friendRequests: {
-        select: {
-          username: true,
-          nickname: true,
-          avatar: true,
-          bio: true,
-        },
-      },
-      friendRequestsSent: {
-        select: {
-          username: true,
-          nickname: true,
-          avatar: true,
-          bio: true,
-        },
-      },
-      blockedUsers: {
-        select: {
-          username: true,
-          nickname: true,
-          avatar: true,
-          bio: true,
-        },
-      },
-      avatar: true,
-      bio: true,
-    },
-  });
-
-  await prisma.user.update({
-    where: {
-      username: requestingUser,
-    },
-    data: {
-      friendRequestsSent: {
-        disconnect: {
-          id: userId,
-        },
-      },
-      friends: {
-        connect: {
-          username: requestingUser,
-        },
-      },
-    },
-  });
-
-  return res.json(updatedAccepter);
-});
+);
 
 // Decline a friend request
-router.put("/declineRequest", async (req: express.Request, res: express.Response): Promise<any> => {
-  const userId = (req as express.Request & { userId: number }).userId;
-  const { userToDecline } = req.body;
+router.delete(
+  "/declineRequest",
+  async (req: express.Request, res: express.Response): Promise<void> => {
+    try {
+      const userId = req.userId;
+      const { userToDecline } = req.body;
 
-  const requester = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
-  });
+      if (!userId) {
+        res.status(500).json({ message: "Authentication error." });
+        return;
+      }
 
-  if (!requester) {
-    return res
-      .status(400)
-      .json({ message: "Current user could not be found." });
+      // Check if valid user to decline is provided
+      if (!userToDecline || typeof userToDecline !== "string") {
+        res.status(400).json({ message: "User to decline was not provided." });
+        return;
+      }
+
+      // Ensure user to decline exists (and grab its id)
+      const userToDeclineExists = await pool.query(
+        `
+      SELECT id
+      FROM users
+      WHERE username = $1
+      `,
+        [userToDecline]
+      );
+
+      if (userToDeclineExists.rows.length === 0) {
+        res
+          .status(404)
+          .json({ message: "User to decline could not be found." });
+        return;
+      }
+
+      const userToDeclineId = userToDeclineExists.rows[0].id;
+
+      const requestExists = await pool.query(
+        `
+      SELECT 1
+      FROM friend_requests
+      WHERE receiver_id = $1
+        AND requester_id = $2
+      `,
+        [userId, userToDeclineId]
+      );
+
+      if (requestExists.rows.length === 0) {
+        res
+          .status(404)
+          .json({ message: "Request to decline could not be found." });
+        return;
+      }
+
+      await pool.query(
+        `
+      DELETE FROM friend_requests
+      WHERE receiver_id = $1
+        AND requester_id = $2
+      `,
+        [userId, userToDeclineId]
+      );
+
+      res
+        .status(200)
+        .json({ message: "Successfully declined friend request." });
+      return;
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
   }
-
-  const declineIsValid = requester.username !== userToDecline;
-
-  if (!declineIsValid) {
-    return res
-      .status(403)
-      .json({ message: "User's cannot decline a request to themselves." });
-  }
-
-  const updatedDecliner = await prisma.user.update({
-    where: {
-      id: userId,
-    },
-    data: {
-      friendRequests: {
-        disconnect: {
-          username: userToDecline,
-        },
-      },
-    },
-    select: {
-      username: true,
-      nickname: true,
-      friends: true,
-      friendRequests: {
-        select: {
-          username: true,
-          nickname: true,
-          avatar: true,
-          bio: true,
-        },
-      },
-      friendRequestsSent: {
-        select: {
-          username: true,
-          nickname: true,
-          avatar: true,
-          bio: true,
-        },
-      },
-      blockedUsers: {
-        select: {
-          username: true,
-          nickname: true,
-          avatar: true,
-          bio: true,
-        },
-      },
-      avatar: true,
-      bio: true,
-    },
-  });
-
-  await prisma.user.update({
-    where: {
-      username: userToDecline,
-    },
-    data: {
-      friendRequestsSent: {
-        disconnect: {
-          id: userId,
-        },
-      },
-    },
-  });
-
-  return res.json(updatedDecliner);
-});
+);
 
 // Cancel a friend request
-router.put("/cancelRequest", async (req: express.Request, res: express.Response): Promise<any> => {
-  const userId = (req as express.Request & { userId: number }).userId;
-  const { userToCancel } = req.body;
+router.delete(
+  "/cancelRequest",
+  async (req: express.Request, res: express.Response): Promise<void> => {
+    try {
+      const userId = req.userId;
+      const { userToCancel } = req.body;
 
-  const requester = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
-  });
+      if (!userId) {
+        res.status(500).json({ message: "Authentication error." });
+        return;
+      }
 
-  if (!requester) {
-    return res
-      .status(400)
-      .json({ message: "Current user could not be found." });
+      if (!userToCancel || typeof userToCancel !== "string") {
+        res
+          .status(500)
+          .json({ message: "User to cancel request to was not provided." });
+        return;
+      }
+
+      // Ensure that the user's who's request is being rescinded exists (and grab its id)
+      const userToCancelExists = await pool.query(
+        `
+      SELECT id
+      FROM users
+      WHERE username = $1
+      `,
+        [userToCancel]
+      );
+
+      if (userToCancelExists.rows.length === 0) {
+        res.status(404).json({ message: "User to cancel could not be found." });
+        return;
+      }
+
+      const userToCancelId = userToCancelExists.rows[0].id;
+
+      // Ensure that the request to cancel exists
+      const requestExists = await pool.query(
+        `
+      SELECT 1
+      FROM friend_requests
+      WHERE requester_id = $1
+        AND receiver_id = $2
+      `,
+        [userId, parseInt(userToCancelId)]
+      );
+
+      if (requestExists.rows.length === 0) {
+        res
+          .status(404)
+          .json({ message: "Request to cancel could not be found." });
+        return;
+      }
+
+      await pool.query(
+        `
+      DELETE FROM friend_requests
+      WHERE requester_id = $1
+        AND receiver_id = $2
+      `,
+        [userId, userToCancelId]
+      );
+
+      res
+        .status(200)
+        .json({ message: "Successfully cancelled friend request." });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
   }
-
-  const cancelIsValid = requester.username !== userToCancel;
-
-  if (!cancelIsValid) {
-    return res
-      .status(403)
-      .json({ message: "User's cannot cancel a request to themselves." });
-  }
-
-  const updatedCanceler = await prisma.user.update({
-    where: {
-      id: userId,
-    },
-    data: {
-      friendRequestsSent: {
-        disconnect: {
-          username: userToCancel,
-        },
-      },
-    },
-    select: {
-      username: true,
-      nickname: true,
-      friends: true,
-      friendRequests: {
-        select: {
-          username: true,
-          nickname: true,
-          avatar: true,
-          bio: true,
-        },
-      },
-      friendRequestsSent: {
-        select: {
-          username: true,
-          nickname: true,
-          avatar: true,
-          bio: true,
-        },
-      },
-      blockedUsers: {
-        select: {
-          username: true,
-          nickname: true,
-          avatar: true,
-          bio: true,
-        },
-      },
-      avatar: true,
-      bio: true,
-    },
-  });
-
-  await prisma.user.update({
-    // The updated user who was sent the friend request
-    where: {
-      username: userToCancel,
-    },
-    data: {
-      friendRequests: {
-        disconnect: {
-          id: userId,
-        },
-      },
-    },
-  });
-
-  return res.json(updatedCanceler);
-});
+);
 
 // Unfriend a user
-router.put("/unfriend", async (req: express.Request, res: express.Response): Promise<any> => {
-  const userId = (req as express.Request & { userId: number }).userId;
-  const { userToUnfriend } = req.body;
+router.put(
+  "/unfriend",
+  async (req: express.Request, res: express.Response): Promise<void> => {
+    try {
+      const userId = req.userId;
+      const { userToUnfriend } = req.body;
 
-  const unfriendingUser = await prisma.user.update({
-    where: {
-      id: userId,
-    },
-    data: {
-      friends: {
-        disconnect: {
-          username: userToUnfriend,
-        },
-      },
-    },
-    select: {
-      username: true,
-      nickname: true,
-      friends: true,
-      friendRequests: {
-        select: {
-          username: true,
-          nickname: true,
-          avatar: true,
-          bio: true,
-        },
-      },
-      friendRequestsSent: {
-        select: {
-          username: true,
-          nickname: true,
-          avatar: true,
-          bio: true,
-        },
-      },
-      blockedUsers: {
-        select: {
-          username: true,
-          nickname: true,
-          avatar: true,
-          bio: true,
-        },
-      },
-      avatar: true,
-      bio: true,
-    },
-  });
+      if (!userId) {
+        res.status(500).json({ message: "Authentication error." });
+        return;
+      }
 
-  await prisma.user.update({
-    where: {
-      username: userToUnfriend,
-    },
-    data: {
-      friends: {
-        disconnect: {
-          id: userId,
-        },
-      },
-    },
-  });
+      // Ensure the user to unfriend is valid
+      if (!userToUnfriend || typeof userToUnfriend !== "string") {
+        res.status(400).json({ message: "User to unfriend not provided." });
+        return;
+      }
 
-  return res.json(unfriendingUser);
-});
+      // Ensure the user to unfriend exists (and grab its id)
+      const userToUnfriendExists = await pool.query(
+        `
+        SELECT id
+        FROM users
+        WHERE username = $1
+      `,
+        [userToUnfriend]
+      );
+
+      if (userToUnfriendExists.rows.length === 0) {
+        res
+          .status(404)
+          .json({ message: "User to unfriend could not be found." });
+        return;
+      }
+
+      const userToUnfriendId = userToUnfriendExists.rows[0].id;
+
+      await pool.query(
+        `
+      DELETE FROM friends f
+      WHERE (f.user_id = $1 AND f.friend_id = $2)
+        OR (f.friend_id = $1 AND f.user_id = $2)
+      `,
+        [userId, userToUnfriendId]
+      );
+
+      res.status(200).json({ message: "Successfully unfriended user." });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+);
 
 // Block a user
-router.put("/block", async (req, res) => {
-  const userId = (req as express.Request & { userId: number }).userId;
-  const { userToBlock } = req.body;
+router.put(
+  "/block",
+  async (req: express.Request, res: express.Response): Promise<void> => {
+    try {
+      const userId = req.userId;
+      const { userToBlock } = req.body;
 
-  const updatedUser = await prisma.user.update({
-    where: {
-      id: userId,
-    },
-    data: {
-      blockedUsers: {
-        connect: {
-          username: userToBlock,
-        },
-      },
-    },
-    select: {
-      username: true,
-      nickname: true,
-      friends: true,
-      friendRequests: {
-        select: {
-          username: true,
-          nickname: true,
-          avatar: true,
-          bio: true,
-        },
-      },
-      friendRequestsSent: {
-        select: {
-          username: true,
-          nickname: true,
-          avatar: true,
-          bio: true,
-        },
-      },
-      blockedUsers: {
-        select: {
-          username: true,
-          nickname: true,
-          avatar: true,
-          bio: true,
-        },
-      },
-      avatar: true,
-      bio: true,
-    },
-  });
-  res.json(updatedUser);
-});
+      if (!userId) {
+        res.status(500).json({ message: "Authentication error." });
+        return;
+      }
+
+      // Ensure user to block is valid
+      if (!userToBlock || typeof userToBlock !== "string") {
+        res.status(400).json({ message: "User to block not provided." });
+        return;
+      }
+
+      // Check if the user to blcok exists (and grab its id)
+      const userToBlockExists = await pool.query(
+        `
+    SELECT id
+    FROM users
+    WHERE username = $1
+    `,
+        [userToBlock]
+      );
+
+      if (userToBlockExists.rows.length === 0) {
+        res.status(404).json({ message: "User to block could not be found." });
+        return;
+      }
+
+      const userToBlockId = userToBlockExists.rows[0].id;
+
+      if (userToBlockId === userId) {
+        res.status(400).json({ message: "Users cannot block themselves." });
+      }
+
+      await pool.query(
+        `
+    INSERT INTO blocked_users (blocker_id, blocked_id)
+    VALUES ($1, $2)
+    `,
+        [userId, userToBlockId]
+      );
+
+      res.status(200).json({ message: "Successfully blocked user." });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+);
+
+// Unblock a user
+router.put(
+  "/unblock",
+  async (req: express.Request, res: express.Response): Promise<void> => {
+    try {
+      const userId = req.userId;
+      const { userToUnblock } = req.body;
+
+      if (!userId) {
+        res.status(500).json({ message: "Authentication error." });
+        return;
+      }
+
+      if (!userToUnblock || typeof userToUnblock !== "string") {
+        res.status(400).json({ message: "User to unblock not provided." });
+      }
+
+      // Ensure the user to unblock exists (and grab its id)
+      const userToUnblockExists = await pool.query(
+        `
+      SELECT id
+      FROM users
+      WHERE username = $1
+      `,
+        [userToUnblock]
+      );
+
+      if (userToUnblockExists.rows.length === 0) {
+        res
+          .status(404)
+          .json({ message: "User to unblock could not be found." });
+      }
+
+      const userToUnblockId = userToUnblockExists.rows[0].id;
+
+      await pool.query(
+        `
+      DELETE FROM blocked_users
+      WHERE blocker_id = $1
+        AND blocked_id = $2
+      `,
+        [userId, userToUnblockId]
+      );
+
+      res.status(200).json({ message: "Successfully unblocked user." });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+);
 
 export default router;

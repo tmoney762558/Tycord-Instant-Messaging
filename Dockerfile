@@ -1,10 +1,9 @@
-FROM node:latest
+FROM node:23
 
 WORKDIR /app
 
 # Install dependencies
 COPY package*.json .
-COPY ./prisma prisma
 RUN npm install
 # Create uploads director (Will not be kept whenever the container restarts)
 # This allows us to avoid the need to handle storage but still have a place to
@@ -19,5 +18,4 @@ COPY . .
 # Expose the application port
 EXPOSE 3000
 
-# Run Prisma migrations and then start the server
-CMD ["sh", "-c", "npx prisma migrate deploy && node ./backend/server.ts"]
+CMD ["sh", "-c", "node ./backend/deploy.ts && node ./backend/server.ts"]

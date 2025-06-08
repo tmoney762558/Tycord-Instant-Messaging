@@ -5,7 +5,7 @@ const Login = () => {
   const [emailInput, setEmailInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
 
-  const apiBase = "/auth/login";
+  const apiBase = "http://localhost:3000/auth/login";
 
   const navigate = useNavigate();
 
@@ -39,7 +39,7 @@ const Login = () => {
   }
 
   return (
-    <div className="flex w-full min-h-screen justify-center items-center bg-slate-900">
+    <div className="flex w-full min-h-screen justify-center items-center bg-slate-900 px-3">
       <form
         className="flex flex-col gap-5 w-full max-w-[20rem]"
         onSubmit={(e) => {

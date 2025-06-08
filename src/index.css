@@ -1,1 +1,31 @@
 @import "tailwindcss";
+
+.noto-sans {
+  font-family: "Noto Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-variation-settings: "wdth" 100;
+}
+
+.gradient-background {
+  background: #020024;
+  background: -webkit-linear-gradient(
+    320deg,
+    rgba(2, 0, 36, 1) 0%,
+    rgba(32, 32, 71, 1) 35%,
+    rgba(2, 150, 184, 1) 100%
+  );
+  background: -moz-linear-gradient(
+    320deg,
+    rgba(2, 0, 36, 1) 0%,
+    rgba(32, 32, 71, 1) 35%,
+    rgba(2, 150, 184, 1) 100%
+  );
+  background: linear-gradient(
+    320deg,
+    rgba(2, 0, 36, 1) 0%,
+    rgba(32, 32, 71, 1) 35%,
+    rgba(2, 150, 184, 1) 100%
+  );
+  filter: progid:DXImageTransform.Microsot.gradient(startColorstr="#020024", endColorstr="#0296B8", GradientType=0);
+}
