@@ -17,7 +17,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "/",
+    origin: "https://tycord-instant-messaging-hbmq.onrender.com",
     methods: ["GET", "POST"],
   },
 });
@@ -28,7 +28,7 @@ const __dirname = path.dirname(__filename);
 
 // CORS Configuration
 const corsOptions = {
-  origin: ["/"],
+  origin: "https://tycord-instant-messaging-hbmq.onrender.com",
   methods: "GET, POST, PUT, DELETE",
   allowedHeaders: "Content-Type, Authorization",
 };
@@ -38,14 +38,18 @@ const helmetOptions = {
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      connectSrc: ["'self'", "ws:", "wss:", "https://tycord-instant-messaging-hbmq.onrender.com/"],
+      connectSrc: [
+        "'self'",
+        "ws:",
+        "wss:",
+        "https://tycord-instant-messaging-hbmq.onrender.com",
+      ],
       imgSrc: ["'self'", "blob:", "data:"],
       scriptSrc: ["'self'"],
       styleSrc: ["'self'"],
     },
   },
 };
-
 
 function verifyUser(token: string) {
   return jwt.verify(token, process.env.JWT_SECRET || "Blah Blah") as {
