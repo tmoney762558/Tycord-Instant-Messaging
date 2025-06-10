@@ -22,7 +22,7 @@ const io = new Server(server, {
   },
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -53,7 +53,7 @@ function verifyUser(token: string) {
 
 app.use(helmet(helmetOptions));
 app.use(cors(corsOptions));
-app.use(express.json());
+
 
 // WebSocket Logic
 const userSockets = new Map();

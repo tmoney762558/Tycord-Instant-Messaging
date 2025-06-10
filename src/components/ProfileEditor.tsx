@@ -37,7 +37,7 @@ const ProfileEditor = ({
   showProfileEditor: boolean;
   setShowProfileEditor: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
-  const apiBase = "/";
+  const apiBase = "/user";
   const token = localStorage.getItem("token") || "";
   const [currentTab, setCurrentTab] = useState("Bio");
   const [editing, setEditing] = useState(false);
