@@ -32,7 +32,6 @@ const Login = () => {
         localStorage.setItem("token", apiData.token);
         navigate("/dashboard");
       }
-
     } catch (err) {
       console.log(err);
     }
@@ -40,14 +39,15 @@ const Login = () => {
 
   return (
     <div className="flex w-full min-h-screen justify-center items-center bg-slate-900 px-3">
+      <h1 className="lg:block hidden absolute top-2 left-5 text-2xl text-neutral-300 font-bold italic">Tycord</h1>
       <form
-        className="flex flex-col gap-5 w-full max-w-[20rem]"
+        className="flex flex-col gap-5 w-full max-w-[30rem] py-7 px-10 border-2 border-slate-700 rounded-sm shadow-lg"
         onSubmit={(e) => {
           e.preventDefault();
           userSignIn();
         }}
       >
-        <label className="w-full text-center text-2xl text-neutral-300 font-mono font-bold">
+        <label className="w-full text-center text-4xl text-neutral-300 font-mono font-bold">
           Login
         </label>
         <input
@@ -69,7 +69,12 @@ const Login = () => {
         <button className="w-full h-10 bg-red-400 rounded-sm text-white font-bold">
           Sign In
         </button>
-        <NavLink className="text-red-300 cursor-pointer" to={"/signUp"}>Don't have an account? Sign up!</NavLink>
+        <NavLink
+          className="w-fit border-b-2 border-transparent hover:border-red-300 text-red-300 font-bold cursor-pointer"
+          to={"/signUp"}
+        >
+          Don't have an account? Sign up!
+        </NavLink>
       </form>
     </div>
   );

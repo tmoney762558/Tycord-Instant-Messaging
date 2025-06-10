@@ -17,7 +17,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "/",
+    origin: "https://tycord-instant-messaging-hbmq.onrender.com/", // Change to production link
     methods: ["GET", "POST"],
   },
 });
