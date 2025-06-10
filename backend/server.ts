@@ -38,7 +38,7 @@ const helmetOptions = {
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      connectSrc: ["'self'", "ws:", "wss:"], // 👈 Add this line
+      connectSrc: ["'self'", "ws:", "wss:", "https://tycord-instant-messaging-hbmq.onrender.com/"],
       imgSrc: ["'self'", "blob:", "data:"],
       scriptSrc: ["'self'"],
       styleSrc: ["'self'"],
