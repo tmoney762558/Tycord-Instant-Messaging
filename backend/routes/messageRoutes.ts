@@ -1,12 +1,11 @@
-/* eslint-disable @typescript-eslint/no-namespace */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import express from "express";
-import prisma from "../PrismaClient.ts";
+import pool from "../db.ts";
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
-      userId?: number;
+      userId: number;
     }
   }
 }
@@ -14,119 +13,157 @@ declare global {
 const router = express.Router();
 
 // Get all messages for a conversation
-router.get("/:convoId", async (req: express.Request, res: express.Response): Promise<any> => {
-  const { convoId } = req.params;
-  const userId = req.userId;
+router.get(
+  "/:convoId",
+  async (req: express.Request, res: express.Response): Promise<void> => {
+    try {
+      const userId = req.userId;
+      const { convoId } = req.params;
 
-  if (!convoId) {
-    return res.send({ message: "Conversation ID not found." });
+      if (!userId) {
+        res.status(500).json({ message: "Authentication error." });
+        return;
+      }
+
+      // Check if conversation ID was provided
+      if (!convoId) {
+        res.status(400).json({ message: "Conversation ID was not provided." });
+        return;
+      }
+
+      // Check if the user is in the conversation (and therefore allowed to view the messages)
+      const userInConversation = await pool.query(
+        `
+          SELECT 1
+          FROM conversation_participants
+          WHERE conversation_id = $1 AND user_id = $2
+        `,
+        [parseInt(convoId), userId]
+      );
+
+      if (userInConversation.rows.length === 0) {
+        res.send({ message: "Conversation not found." });
+        return;
+      }
+
+      const messages = await pool.query(
+        `
+        SELECT m.id, m.content, m.createdAt, u.username, u.nickname, u.avatar, u.bio
+        FROM messages m
+        JOIN users u ON m.user_id = u.id
+        WHERE conversation_id = $1
+        ORDER BY m.createdAt ASC
+        `,
+        [parseInt(convoId)]
+      );
+
+      res.status(200).json(messages.rows);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
   }
-
-  const userInConversation = prisma.conversation.findUnique({
-    where: {
-      id: parseInt(convoId),
-      users: {
-        some: {
-          id: userId,
-        },
-      },
-    },
-  });
-
-  if (!userInConversation) {
-    return res.send({ message: "Conversation not found." });
-  }
-
-  const messages = await prisma.message.findMany({
-    where: {
-      conversationId: parseInt(convoId),
-    },
-    select: {
-      id: true,
-      content: true,
-      user: {
-        select: {
-          username: true,
-          nickname: true,
-          avatar: true,
-          bio: true,
-        },
-      },
-    },
-  });
-
-  return res.json(messages);
-});
+);
 
 // Create a new message
-router.post("/:convoId", async (req: express.Request, res: express.Response): Promise<any> => {
-  const { convoId } = req.params;
-  const { messageContent } = req.body;
-  const userId = req.userId;
+router.post(
+  "/:convoId",
+  async (req: express.Request, res: express.Response): Promise<void> => {
+    const client = await pool.connect();
+    try {
+      const userId = req.userId;
+      const { convoId } = req.params;
+      const { messageContent } = req.body;
 
-  if (!userId) {
-    return res.send({ message: "Unauthorized" });
+      if (!userId) {
+        res.status(500).json({ message: "Authentication error." });
+        return;
+      }
+
+      // Check if conversation ID was provided
+      if (!convoId) {
+        res.send({ message: "Conversation ID was not provided." });
+        return;
+      }
+
+      await client.query("BEGIN");
+
+      // Check if the user is in the conversation (and therefore allowed to send a message in said conversation)
+      const userInConversation = await client.query(
+        `
+        SELECT 1
+        FROM conversation_participants
+        WHERE conversation_id = $1 AND user_id = $2
+        `,
+        [parseInt(convoId), userId]
+      );
+
+      if (userInConversation.rows.length === 0) {
+        res.send({ message: "Conversation not found." });
+        return;
+      }
+
+      const message = await client.query(
+        `
+        INSERT INTO messages (conversation_id, user_id, content)
+        VALUES($1, $2, $3)
+        `,
+        [parseInt(convoId), userId, messageContent]
+      );
+
+      await client.query("COMMIT");
+
+      res.status(200).json(message);
+    } catch (err) {
+      await client.query("ROLLBACK");
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    } finally {
+      client.release();
+    }
   }
-
-  if (!convoId) {
-    return res.send({ message: "Conversation ID not provided." });
-  }
-
-  const userInConversation = await prisma.conversation.findUnique({
-    where: {
-      id: parseInt(convoId),
-      users: {
-        some: {
-          id: userId,
-        },
-      },
-    },
-  });
-
-  if (!userInConversation) {
-    return res.send({ message: "Conversation not found." });
-  }
-
-  const message = await prisma.message.create({
-    data: {
-      conversationId: parseInt(convoId),
-      userId: userId,
-      content: messageContent,
-    },
-  });
-
-  return res.json(message);
-});
+);
 
 // Delete a message
-router.delete("/:convoId", async (req: express.Request, res: express.Response): Promise<any> => {
-  try {
-    const userId = req.userId;
-    const { convoId } = req.params;
-    const { messageId } = req.body;
+router.delete(
+  "/:convoId",
+  async (req: express.Request, res: express.Response): Promise<void> => {
+    try {
+      const userId = req.userId;
+      const { convoId } = req.params;
+      const { messageId } = req.body;
 
-    const deletedMessage = await prisma.message.delete({
-      where: {
-        id: messageId,
-        userId: userId,
-        conversationId: parseInt(convoId),
-      },
-      select: {
-        content: true,
-      },
-    });
+      if (!userId) {
+        res.status(500).json({ message: "Authentication error." });
+        return;
+      }
 
-    if (!deletedMessage) {
-      return res.status(404).json({
-        message:
-          "Message could not be found. Are you authorized to delete this message?",
-      });
+      // Check if conversation ID is provided
+      if (!convoId) {
+        res.status(400).json({ message: "Conversation ID was not provided." });
+        return;
+      }
+
+      // Check if valid message ID is provided
+      if (!messageId || typeof messageId !== "string") {
+        res.status(400).json({ message: "Message ID not provided." });
+        return;
+      }
+
+      await pool.query(
+        `
+        DELETE FROM messages
+        WHERE id = $1 AND user_id = $2 AND conversation_id = $3
+        `,
+        [parseInt(messageId), userId, parseInt(convoId)]
+      );
+
+      res.status(200).json({ message: "Successfully deleted message." });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
     }
-
-    return res.json(deletedMessage);
-  } catch (err) {
-    console.log(err);
   }
-});
+);
 
 export default router;

@@ -5,6 +5,7 @@ import { FaUserFriends } from "react-icons/fa";
 import { IoArrowBackCircle, IoPersonRemove } from "react-icons/io5";
 import defaultPFP from "../assets/defaultPFP.jpg";
 import { IoMdPersonAdd } from "react-icons/io";
+import { socket } from "../socket";
 
 interface CurrentUser {
   createdAt: string;
@@ -76,12 +77,11 @@ const FriendTab = ({
 
       const apiData = await response.json();
 
-      if (apiData.message) {
-        return alert(apiData.message);
-      }
-
-      if (apiData) {
+      if (response.ok) {
+        socket.emit("friends_updated", token, userToUnfriend);
         fetchUserData();
+      } else {
+        alert(apiData.message);
       }
     } catch (err) {
       console.log(err);
@@ -92,7 +92,7 @@ const FriendTab = ({
   async function acceptFriendRequest(requestingUser: string) {
     try {
       const response = await fetch(apiBase + "user/acceptRequest", {
-        method: "PUT",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: token,
@@ -104,12 +104,11 @@ const FriendTab = ({
 
       const apiData = await response.json();
 
-      if (apiData.message) {
-        return alert(apiData.message);
-      }
-
-      if (apiData) {
+      if (response.ok) {
+        socket.emit("friends_updated", token, requestingUser);
         fetchUserData();
+      } else {
+        alert(apiData.message);
       }
     } catch (err) {
       console.log(err);
@@ -120,7 +119,7 @@ const FriendTab = ({
   async function declineFriendRequest(userToDecline: string) {
     try {
       const response = await fetch(apiBase + "user/declineRequest", {
-        method: "PUT",
+        method: "DELETE",
         headers: {
           "Content-Type": "application/json",
           Authorization: token,
@@ -132,12 +131,11 @@ const FriendTab = ({
 
       const apiData = await response.json();
 
-      if (apiData.message) {
-        return alert(apiData.message);
-      }
-
-      if (apiData) {
+      if (response.ok) {
+        socket.emit("friends_updated", token, userToDecline);
         fetchUserData();
+      } else {
+        alert(apiData.message);
       }
     } catch (err) {
       console.log(err);
@@ -148,7 +146,7 @@ const FriendTab = ({
   async function cancelFriendRequest(userToCancel: string) {
     try {
       const response = await fetch(apiBase + "user/cancelRequest", {
-        method: "PUT",
+        method: "DELETE",
         headers: {
           "Content-Type": "application/json",
           Authorization: token,
@@ -160,12 +158,11 @@ const FriendTab = ({
 
       const apiData = await response.json();
 
-      if (apiData.message) {
-        return alert(apiData.message);
-      }
-
-      if (apiData) {
+      if (response.ok) {
+        socket.emit("friends_updated", token, userToCancel);
         fetchUserData();
+      } else {
+        alert(apiData.message);
       }
     } catch (err) {
       console.log(err);
@@ -324,7 +321,7 @@ const FriendTab = ({
                 </div>
               ))}
             </div>
-            <div className="flex flex-col justify-center items-center w-full rounded-lg">
+            <div className="flex flex-col justify-center items-center w-full mt-5 rounded-lg">
               <h2 className="w-full py-3 bg-slate-900 shadow-lg shadow-black text-center text-xl text-white font-bold">
                 Outgoing Requests - {userData?.friendRequestsSent.length || 0}
               </h2>

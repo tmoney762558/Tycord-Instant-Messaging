@@ -11,6 +11,7 @@ import ConversationTab from "./ConversationTab";
 import ProfileDisplay from "./ProfileDisplay";
 import ConversationMenu from "./ConversationMenu";
 import DeleteMessagePrompt from "./DeleteMessagePrompt";
+import { socket } from "../socket.ts";
 
 interface CurrentUser {
   createdAt: string;
@@ -41,7 +42,10 @@ interface Message {
   id: number;
   createdAt: string;
   content: string;
-  user: User;
+  username: string;
+  nickname: string;
+  avatar: string;
+  bio: string;
 }
 
 interface MessageState {
@@ -85,13 +89,6 @@ const Dashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Fetch user data and the conversations they are a part of
-  useEffect(() => {
-    fetchUserData();
-    fetchConversations();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Fetches data for user
   async function fetchUserData() {
     try {
@@ -105,10 +102,11 @@ const Dashboard = () => {
       const apiData = await response.json();
 
       if (apiData.message) {
-        return alert(apiData.message);
+        return console.log(apiData.message);
       }
 
       if (apiData) {
+        console.log(apiData);
         setUserData(apiData);
       } else {
         navigate("/");
@@ -121,21 +119,23 @@ const Dashboard = () => {
   // Fetches all conversations for a user
   async function fetchConversations() {
     try {
-    const repsponse = await fetch(apiBase + "conversations", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token,
-      },
-    });
+      const response = await fetch(apiBase + "conversations", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token,
+        },
+      });
 
-    const apiData = await repsponse.json();
+      const apiData = await response.json();
 
-    if (apiData.message) {
-      return alert(apiData.message);
-    }
+      if (apiData.message) {
+        return console.log(apiData.message);
+      }
 
-    setConversations(apiData);} catch(err) {
+      console.log(apiData);
+      setConversations(apiData);
+    } catch (err) {
       console.log(err);
     }
   }
@@ -154,17 +154,14 @@ const Dashboard = () => {
 
       const apiData = await response.json();
 
-      if (apiData.message) {
-        return alert(apiData.message);
-      }
-      
+      console.log(apiData);
 
-      if (!apiData) {
-        console.log("Something went wrong while fetching the data.");
-        return;
+      if (response.ok) {
+        fetchUserData();
+        dispatch(setMessages(apiData));
+      } else {
+        navigate("/");
       }
-
-      dispatch(setMessages(apiData));
     } catch (err) {
       console.log(err);
     }
@@ -186,8 +183,11 @@ const Dashboard = () => {
 
       const apiData = await response.json();
 
-      if (apiData.message) {
-        return alert(apiData.message);
+      if (response.ok) {
+        socket.emit("new_message", token, convoId);
+        fetchMessages(convoId);
+      } else {
+        alert(apiData.message);
       }
 
       if (!apiData) {
@@ -204,7 +204,7 @@ const Dashboard = () => {
   async function createFriendRequest(userToAdd: string) {
     try {
       const response = await fetch(apiBase + "user/sendFriendRequest", {
-        method: "PUT",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: token,
@@ -216,13 +216,61 @@ const Dashboard = () => {
 
       const apiData = await response.json();
 
-      if (apiData) {
+      if (response.ok) {
+        socket.emit("friends_updated", token, userToAdd);
         fetchUserData();
+      } else {
+        alert(apiData.message);
       }
     } catch (err) {
       console.log(err);
     }
   }
+
+  // Establish websocket connection, fetch user data, and fetch the conversations they are a part of
+  useEffect(() => {
+    socket.emit("register", token);
+    fetchUserData();
+    fetchConversations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Listen on each socket event
+  useEffect(() => {
+    if (!token) {
+      return console.log(
+        "Web socket initialization failed. No token provided."
+      );
+    }
+
+    socket.on("error", (err) => {
+      console.log(err);
+    });
+
+    socket.on("new_conversation", () => {
+      console.log("new_conversation");
+      fetchConversations();
+    });
+
+    socket.on("new_message", () => {
+      console.log("new_message");
+      fetchMessages(convoId);
+    });
+
+    socket.on("friends_updated", () => {
+      console.log("new friend");
+      fetchUserData();
+    });
+
+    return () => {
+      socket.off("error");
+      socket.off("new_message");
+      socket.off("new_conversation");
+      socket.off("friends_updated");
+    };
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convoId]);
 
   return (
     <div className="flex relative max-w-full min-h-[40rem] h-screen">
@@ -237,6 +285,7 @@ const Dashboard = () => {
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
         fetchConversations={fetchConversations}
+        convoId={convoId}
         setConvoId={setConvoId}
         setShowConversationMenu={setShowConversationMenu}
         conversations={conversations}

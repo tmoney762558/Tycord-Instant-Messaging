@@ -37,7 +37,7 @@ const ProfileEditor = ({
   showProfileEditor: boolean;
   setShowProfileEditor: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
-  const apiBase = "/user";
+  const apiBase = "/";
   const token = localStorage.getItem("token") || "";
   const [currentTab, setCurrentTab] = useState("Bio");
   const [editing, setEditing] = useState(false);
@@ -65,12 +65,12 @@ const ProfileEditor = ({
 
       const apiData = await response.json();
 
-      if (apiData.message) {
-        return alert(apiData.message);
-      }
-
       if (apiData) {
         fetchUserData();
+      }
+
+      if (apiData.message) {
+        return alert(apiData.message);
       }
     } catch (err) {
       console.log(err);

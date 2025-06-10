@@ -7,24 +7,30 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "tsxwatch": "tsx watch ./backend/server.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.5.0",
     "@reduxjs/toolkit": "^2.6.1",
     "@tailwindcss/vite": "^4.0.12",
+    "@types/multer": "^1.4.12",
+    "@types/pg": "^8.15.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
     "express": "^4.21.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.2",
-    "pg": "^8.13.3",
+    "pg": "^8.15.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.3.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "tailwindcss": "^4.0.12"
   },
   "devDependencies": {
@@ -40,6 +46,7 @@
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^15.15.0",
     "prisma": "^6.5.0",
+    "tsx": "^4.19.4",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.24.1",
     "vite": "^6.2.0"
