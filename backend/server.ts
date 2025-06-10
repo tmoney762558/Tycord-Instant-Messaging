@@ -38,12 +38,15 @@ const helmetOptions = {
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
+      connectSrc: ["'self'", "wss://tycord-instant-messaging-hbmq.onrender.com"],
       imgSrc: ["'self'", "blob:", "data:"],
       scriptSrc: ["'self'"],
       styleSrc: ["'self'"],
     },
   },
 };
+
+
 
 function verifyUser(token: string) {
   return jwt.verify(token, process.env.JWT_SECRET || "Blah Blah") as {
