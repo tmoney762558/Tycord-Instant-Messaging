@@ -58,7 +58,7 @@ const FriendTab = ({
   setShowProfile: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
   const token = localStorage.getItem("token") || "";
-  const apiBase = "http://localhost:3000/";
+  const apiBase = "/";
   const [currentFriendTab, setCurrentFriendTab] = useState("Friends");
 
   // Remove a friend

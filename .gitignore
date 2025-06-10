@@ -26,3 +26,4 @@ dist-ssr
 *.env
 backend/postgres
 uploads
+backend/.env

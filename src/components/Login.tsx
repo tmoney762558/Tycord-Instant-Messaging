@@ -5,7 +5,7 @@ const Login = () => {
   const [emailInput, setEmailInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
 
-  const apiBase = "http://localhost:3000/auth/login";
+  const apiBase = "/";
 
   const navigate = useNavigate();
 

@@ -15,7 +15,7 @@ const ConversationMenu = ({
   setShowConversationMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setRecipients: React.Dispatch<React.SetStateAction<string[]>>;
 }) => {
-  const apiBase = "http://localhost:3000/";
+  const apiBase = "/";
   const token = localStorage.getItem("token") || "";
   const [conversationImage, setConversationImage] = useState<File | null>(null);
   const [conversationNameInput, setConversationNameInput] = useState("");
