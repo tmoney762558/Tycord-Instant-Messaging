@@ -24,6 +24,5 @@ dist-ssr
 *.sln
 *.sw?
 *.env
-backend/postgres
 uploads
 backend/.env
