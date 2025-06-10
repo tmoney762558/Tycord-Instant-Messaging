@@ -38,12 +38,14 @@ const helmetOptions = {
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
+      connectSrc: ["'self'", "ws:", "wss:"], // 👈 Add this line
       imgSrc: ["'self'", "blob:", "data:"],
       scriptSrc: ["'self'"],
       styleSrc: ["'self'"],
     },
   },
 };
+
 
 function verifyUser(token: string) {
   return jwt.verify(token, process.env.JWT_SECRET || "Blah Blah") as {
