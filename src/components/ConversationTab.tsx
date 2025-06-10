@@ -161,7 +161,6 @@ const ConversationTab = ({
                       if (message.username === userData?.username) {
                         setShowProfileEditor(true);
                       } else {
-                        console.log(message.avatar);
                         setProfileUser(message.username);
                         setProfileNick(message.nickname);
                         setProfileAvatar(message.avatar);
