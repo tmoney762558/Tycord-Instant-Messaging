@@ -5,6 +5,7 @@ import pool from "./db.ts";
 import jwt from "jsonwebtoken";
 import cors from "cors";
 import path from "path";
+import helmet from "helmet";
 import { fileURLToPath } from "url";
 import authRoutes from "./routes/authRoutes.ts";
 import authMiddleware from "./middleware/authMiddleware.ts";
@@ -16,7 +17,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "https://tycord-instant-messaging-hbmq.onrender.com",
+    origin: "/",
     methods: ["GET", "POST"],
   },
 });
@@ -27,9 +28,21 @@ const __dirname = path.dirname(__filename);
 
 // CORS Configuration
 const corsOptions = {
-  origin: "https://tycord-instant-messaging-hbmq.onrender.com",
+  origin: ["/"],
   methods: "GET, POST, PUT, DELETE",
   allowedHeaders: "Content-Type, Authorization",
+};
+
+// Helmet Configuration
+const helmetOptions = {
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", "blob:", "data:"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'"],
+    },
+  },
 };
 
 function verifyUser(token: string) {
@@ -38,6 +51,7 @@ function verifyUser(token: string) {
   };
 }
 
+app.use(helmet(helmetOptions));
 app.use(cors(corsOptions));
 app.use(express.json());
 
