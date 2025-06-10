@@ -5,7 +5,6 @@ import pool from "./db.ts";
 import jwt from "jsonwebtoken";
 import cors from "cors";
 import path from "path";
-import helmet from "helmet";
 import { fileURLToPath } from "url";
 import authRoutes from "./routes/authRoutes.ts";
 import authMiddleware from "./middleware/authMiddleware.ts";
@@ -39,7 +38,6 @@ function verifyUser(token: string) {
   };
 }
 
-app.use(helmet(helmetOptions));
 app.use(cors(corsOptions));
 app.use(express.json());
 
