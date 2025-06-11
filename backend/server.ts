@@ -53,7 +53,7 @@ function verifyUser(token: string) {
 
 app.use(helmet(helmetOptions));
 app.use(cors(corsOptions));
-
+app.use(express.json());
 
 // WebSocket Logic
 const userSockets = new Map();
