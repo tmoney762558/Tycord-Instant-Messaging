@@ -45,12 +45,14 @@ const helmetOptions = {
   },
 };
 
+// Verify a user using a token
 function verifyUser(token: string) {
   return jwt.verify(token, process.env.JWT_SECRET || "Blah Blah") as {
     id: number;
   };
 }
 
+// Set up all app.use() calls
 app.use(helmet(helmetOptions));
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -89,14 +91,20 @@ io.on("connection", (socket) => {
 
   socket.on("new_conversation", async (token: string, usernames: string[]) => {
     try {
-      if (!token) {
+      // Ensure all user-provided values are valid
+      if (!token || typeof token !== "string") {
         return socket.emit("error", "WebSocket Error: No token provided.");
       }
 
-      if (!usernames) {
+      if (
+        !usernames ||
+        typeof usernames !== "object" ||
+        typeof usernames[0] !== "string"
+      ) {
         return socket.emit("error", "WebSocket Error: No username provided.");
       }
 
+      // Verify user using token
       const userId = verifyUser(token).id;
 
       if (!userId) {
@@ -142,7 +150,6 @@ io.on("connection", (socket) => {
       // Emit to all users who are being added to the conversation
       for (let i = 0; i < usernames.length; i++) {
         const recievingSocketId = userSockets.get(usernames[i]);
-
         socket.to(recievingSocketId).emit("new_conversation");
       }
     } catch (err) {
@@ -150,9 +157,11 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Adds the user to the room of the selected conversation
   socket.on("join_conversation", async (token: string, convoId: number) => {
     const userId = verifyUser(token).id;
 
+    // Ensure all user-provided values are valid
     if (!token || typeof token !== "string") {
       socket.emit("error", "WebSocket Error: No token provided.");
     }
@@ -165,6 +174,7 @@ io.on("connection", (socket) => {
       return socket.emit("error", "WebSocket Error: Token is invalid.");
     }
 
+    // Check if the user is present in the conversation
     const userInConversation = await pool.query(
       `
       SELECT 1
@@ -184,10 +194,12 @@ io.on("connection", (socket) => {
     socket.join(convoId.toString());
   });
 
+  // Send out command to all users actively viewing a conversation that updates the messages
   socket.on("new_message", async (token: string, convoId: number) => {
     try {
       const userId = verifyUser(token).id;
 
+      // Ensure all user-provided values are valid
       if (!token || typeof token !== "string") {
         socket.emit("error", "WebSocket Error: No token provided.");
       }
@@ -196,6 +208,7 @@ io.on("connection", (socket) => {
         socket.emit("error", "WebSocket Error: No conversation ID provided.");
       }
 
+      // Ensure user is present in conversation
       const userInConversation = await pool.query(
         `
       SELECT 1
@@ -219,9 +232,11 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Send out a command to update the friends list of somebody who has been added / removed
   socket.on("friends_updated", async (token, user) => {
     try {
-      if (!token) {
+      // Ensure all user-provided values are valid
+      if (!token || typeof token !== "string") {
         return socket.emit("error", "WebSocket Error: No token provided.");
       }
 
@@ -229,6 +244,7 @@ io.on("connection", (socket) => {
         return socket.emit("error", "WebSocket Error: No username provided.");
       }
 
+      // Verify the provided token
       const userId = verifyUser(token).id;
 
       if (!userId) {
@@ -269,9 +285,8 @@ io.on("connection", (socket) => {
         );
       }
 
-      // Emit to all users who are being added to the conversation
+      // Emit to the user who is being added
       const recievingSocketId = userSockets.get(user);
-
       socket.to(recievingSocketId).emit("friends_updated");
     } catch (err) {
       console.log(err);
@@ -280,7 +295,8 @@ io.on("connection", (socket) => {
 
   socket.on("closed_conversation", async (token: string, convoId: number) => {
     try {
-      if (!token) {
+      // Ensure all user-provided values are valid
+      if (!token || typeof token !== "string") {
         return socket.emit("error", "WebSocket Error: No token provided.");
       }
 
@@ -288,12 +304,14 @@ io.on("connection", (socket) => {
         return socket.emit("error", "WebSocket Error: No username provided.");
       }
 
+      // Verify the provided token
       const userId = verifyUser(token).id;
 
       if (!userId) {
         return socket.emit("error", "WebSocket Error: Token is invalid.");
       }
 
+      // Check if the user is present in the conversation
       const userInConversation = await pool.query(
         `
       SELECT 1
