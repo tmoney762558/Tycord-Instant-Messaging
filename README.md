@@ -1,56 +1,80 @@
-💬 TYCORD Instant Messaging – User Guide
-Welcome to TYCORD, your go-to for fast, clean, and simple real-time messaging. Below is a quick breakdown of how to use the app:
+# 💬 TYCORD Instant Messaging
 
-🧭 1. Sidebar Navigation
-The sidebar gives you access to essential profile options:
+Welcome to **TYCORD**, a lightweight and responsive instant messaging system. This guide will walk you through all the core features of the app.
 
-🔐 Log out of your account
+---
 
-🛠️ Edit your profile – update your avatar, username, nickname, and bio
+## 🧭 1. Sidebar Navigation
 
-⚙️ More customization features are coming soon!
+The sidebar allows you to manage your account and customize your profile:
 
-📬 2. Direct Messages Tab
-This tab shows all of your conversations.
-Inside you'll find:
+- 🔐 **Log Out** – securely sign out of your account  
+- 🛠️ **Edit Profile** – update your:
+  - Avatar
+  - Username
+  - Nickname
+  - Bio
 
-➕ Create Conversation – start a new DM by entering another user’s username.
+> ℹ️ *More profile features are in development.*
 
-✅ You can even add yourself for testing purposes.
+---
 
-👥 Friends Button – quickly switch to your Friends tab if it’s not already open.
+## 📬 2. Direct Messages Tab
 
-👫 3. Friends Tab
-Manage your social circle here:
+This is where all your conversations live. From here, you can:
 
-👋 View your friends list and any incoming friend requests
+- ➕ **Create Conversation**  
+  - Start a new chat with another user by entering their username.  
+  - For testing, you can even add **your own username** as a recipient.
+  
+- 👥 **Friends Button**  
+  - Opens the **Friends tab** (if not already open) so you can manage friend connections easily.
 
-✅ Accept or ❌ reject friend requests
+---
 
-➕ Send new friend requests using the other user’s username
+## 👫 3. Friends Tab
 
-👤 4. Viewing Profiles
-Click any user’s avatar to view their profile.
-Here, you can:
+Your hub for managing friendships:
 
-See their username, nickname, and bio
+- ✅ **Accept** or ❌ **Reject** incoming friend requests  
+- ➕ **Send Friend Requests** using the recipient's username  
+- 👥 View your full **friends list**
 
-Add them to a conversation
+---
 
-Send them a friend request
+## 👤 4. User Profiles
 
-💭 5. Conversations Panel
-When you select a conversation, it will open in this panel:
+Click any user’s avatar to view their profile. From there, you can:
 
-🏷️ Shows the conversation name
+- View their **Username**, **Nickname**, and **Bio**  
+- ➕ Add them to a conversation  
+- ➕ Send a friend request
 
-💬 Displays all messages in the thread
+---
 
-✏️ Send new messages using the input at the bottom
+## 💭 5. Conversations Panel
 
-❌ Delete your own messages
+This panel displays the currently selected conversation:
 
-🚪 Leave the conversation at any time
+- 🏷️ Shows the **conversation name**
+- 💬 Displays all **messages**
+- ✏️ **Send messages** using the input box  
+- 🗑️ **Delete** your own messages  
+- 🚪 **Leave** the conversation if desired
 
-🛠️ More Features Coming Soon
-TYCORD is in active development, and more functionality is on the way. Stay tuned!
+---
+
+## 🚧 Coming Soon
+
+TYCORD is actively being developed. Stay tuned for:
+
+- Group chat support  
+- Notification system  
+- Profile customization enhancements  
+- Real-time presence indicators
+
+---
+
+## 📫 Feedback
+
+Feel free to open an issue or pull request with suggestions or improvements. We'd love to hear your feedback!
