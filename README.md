@@ -68,7 +68,7 @@ This panel displays the currently selected conversation:
 
 TYCORD is actively being developed. Stay tuned for:
 
-- Group chat support  
+- Communities
 - Notification system  
 - Profile customization enhancements  
 - Real-time presence indicators
