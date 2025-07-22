@@ -39,7 +39,7 @@ const Login = () => {
 
   return (
     <div className="flex w-full min-h-screen justify-center items-center bg-slate-900 px-3">
-      <h1 className="lg:block hidden absolute top-2 left-5 text-2xl text-neutral-300 font-bold italic">Tycord</h1>
+      <h1 className="lg:block hidden absolute top-2 left-5 text-2xl text-neutral-300 font-bold">Tycord</h1>
       <form
         className="flex flex-col gap-5 w-full max-w-[30rem] py-7 px-10 border-2 border-slate-700 rounded-sm shadow-lg"
         onSubmit={(e) => {

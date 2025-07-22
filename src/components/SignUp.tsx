@@ -49,7 +49,7 @@ const SignUp = () => {
 
   return (
     <div className="flex w-full min-h-screen justify-center items-center bg-slate-900 px-3">
-      <h1 className="lg:block hidden absolute top-2 left-5 text-2xl text-neutral-300 font-bold italic">
+      <h1 className="lg:block hidden absolute top-2 left-5 text-2xl text-neutral-300 font-bold">
         Tycord
       </h1>
       <form

@@ -25,27 +25,27 @@ const LandingPage = () => {
             {dropdownOpen ? (
               <div className="absolute top-7 right-0">
                 <NavLink to="/signup">
-                  <button className="w-20 py-1 bg-transparent border-2 border-neutral-300 text-sm text-white font-bold cursor-pointer">
+                  <button className="w-20 py-1 bg-white hover:bg-neutral-200 border-2 border-neutral-300 text-sm text-black font-bold cursor-pointer">
                     Sign Up
                   </button>
                 </NavLink>
                 <NavLink to="/login">
-                  <button className="w-20 px-3 py-1 bg-red-400 border-2 border-neutral-300 text-sm text-white font-bold cursor-pointer">
-                    Sign In
+                  <button className="w-20 px-3 py-1 bg-white hover:bg-neutral-200 border-2 border-t-0 border-neutral-300 text-sm text-black font-bold cursor-pointer">
+                    Login
                   </button>
                 </NavLink>
               </div>
             ) : null}
           </div>
           <div className="lg:flex hidden gap-5">
-            <NavLink to="/signup">
-              <button className="lg:px-7 px-3 lg:py-[0.3rem] py-1 bg-transparent border-2 border-neutral-300 rounded-full text-white font-bold cursor-pointer">
-                Sign Up
+            <NavLink to="/login">
+              <button className="lg:px-7 px-3 lg:py-[0.3rem] py-1 bg-transparent hover:bg-white border-2 border-neutral-300 rounded-full text-white hover:text-black font-bold cursor-pointer">
+                Login
               </button>
             </NavLink>
-            <NavLink to="/login">
-              <button className="lg:px-7 px-3 lg:py-[0.3rem] py-1 bg-red-400 border-2 border-neutral-300 rounded-full text-white font-bold cursor-pointer">
-                Sign In
+            <NavLink to="/signup">
+              <button className="lg:px-7 px-3 lg:py-[0.3rem] py-1 bg-red-400 hover:bg-white border-2 border-neutral-300 rounded-full text-white hover:text-black font-bold cursor-pointer">
+                Sign Up
               </button>
             </NavLink>
           </div>
@@ -60,7 +60,7 @@ const LandingPage = () => {
                 Where conversations come to life. Chat with us today.
               </h2>
               <NavLink to="/signup">
-                <button className="w-[10rem] mt-10 py-2 bg-white hover:bg-black rounded-full text-xl hover:text-white font-bold cursor-pointer">
+                <button className="w-[10rem] mt-10 py-2 bg-transparent hover:bg-white border-2 border-white rounded-full text-xl text-white hover:text-black font-bold cursor-pointer">
                   Get Started
                 </button>
               </NavLink>
@@ -72,9 +72,15 @@ const LandingPage = () => {
           </div>
         </div>
         <div className="lg:flex hidden justify-between w-full text-2xl text-white font-bold">
-          <p className="py-3 px-10 border-2 border-white rounded-full">Chat With Friends</p>
-          <p className="py-3 px-10 border-2 border-white rounded-full">Instant Messaging</p>
-          <p className="py-3 px-10 border-2 border-white rounded-full">Secure Chat Rooms</p>
+          <p className="py-2 px-7 border-[1px] border-white rounded-full text-sm">
+            Instant Messaging
+          </p>
+          <p className="py-2 px-7 border-[1px] border-white rounded-full text-sm">
+            Instant Messaging
+          </p>
+          <p className="py-2 px-7 border-[1px] border-white rounded-full text-sm">
+            Secure Chat Rooms
+          </p>
         </div>
       </div>
     </div>

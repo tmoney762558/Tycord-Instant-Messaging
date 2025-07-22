@@ -151,7 +151,7 @@ router.post(
       // Get information for user associated with email
       const user = await pool.query(
         `
-        SELECT hashed_password
+        SELECT id, hashed_password
         FROM users WHERE email = $1
         `,
         [email]
