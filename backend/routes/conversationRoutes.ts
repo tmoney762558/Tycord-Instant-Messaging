@@ -2,8 +2,13 @@ import express from "express";
 import pool from "../db.ts";
 import upload from "./multerConfig.ts";
 
-interface AuthenticatedRequest extends express.Request {
-  userId?: number;
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Express {
+    interface Request {
+      userId: number;
+    }
+  }
 }
 
 const router = express.Router();
@@ -11,7 +16,7 @@ const router = express.Router();
 // Get all conversations for a user
 router.get(
   "/",
-  async (req: AuthenticatedRequest, res: express.Response): Promise<void> => {
+  async (req: express.Request, res: express.Response): Promise<void> => {
     try {
       const userId = req.userId;
 
@@ -45,7 +50,7 @@ router.get(
 router.post(
   "/",
   upload.single("conversationImg"),
-  async (req: AuthenticatedRequest, res: express.Response): Promise<void> => {
+  async (req: express.Request, res: express.Response): Promise<void> => {
     const client = await pool.connect();
     try {
       const userId = req.userId;
@@ -164,7 +169,7 @@ router.post(
 // Remove a user from a conversation and delete the conversation if no users are remaining
 router.delete(
   "/:convoId",
-  async (req: AuthenticatedRequest, res: express.Response): Promise<void> => {
+  async (req: express.Request, res: express.Response): Promise<void> => {
     const client = await pool.connect();
     try {
       const userId = req.userId;
