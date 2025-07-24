@@ -175,7 +175,7 @@ router.post(
       // Create token for user
       const token = jwt.sign(
         { id: user.rows[0].id },
-        process.env.JWT_SECRET || "Blah Blah",
+        process.env.JWT_SECRET,
         {
           expiresIn: "24h",
         }

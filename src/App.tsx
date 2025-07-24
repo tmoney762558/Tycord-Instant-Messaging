@@ -7,7 +7,7 @@ import LandingPage from "./components/LandingPage";
 const App = () => {
   return (
     <Routes>
-      <Route path="/" element={<LandingPage></LandingPage>}></Route>
+      <Route path="/" element={<Dashboard></Dashboard>}></Route>
       <Route path="/login" element={<Login></Login>}></Route>
       <Route path="/signUp" element={<SignUp></SignUp>}></Route>
       <Route path="/dashboard" element={<Dashboard></Dashboard>}></Route>
