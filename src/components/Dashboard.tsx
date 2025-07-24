@@ -1,5 +1,5 @@
 import Conversation from "./Conversation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setMessages } from "../reduxStore/slices/messagesSlice";
 import { useNavigate } from "react-router-dom";
@@ -90,82 +90,89 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   // Fetches data for user
-  async function fetchUserData() {
-    try {
-      const response = await fetch(apiBase + "user", {
-        method: "GET",
-        headers: {
-          Authorization: token,
-        },
-      });
-
-      const apiData = await response.json();
-
-      if (apiData.message) {
-        return console.log(apiData.message);
-      }
-
-      if (apiData) {
-        console.log(apiData);
-        setUserData(apiData);
-      } else {
-        navigate("/");
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  }
-
-  // Fetches all conversations for a user
-  async function fetchConversations() {
-    try {
-      const response = await fetch(apiBase + "conversations", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token,
-        },
-      });
-
-      const apiData = await response.json();
-
-      if (apiData.message) {
-        return console.log(apiData.message);
-      }
-
-      console.log(apiData);
-      setConversations(apiData);
-    } catch (err) {
-      console.log(err);
-    }
-  }
-
-  async function fetchMessages(currentConversation: number) {
-    try {
-      const response = await fetch(
-        apiBase + "messages/" + currentConversation,
-        {
+  const fetchUserData = useCallback(
+    async function fetchUserData() {
+      try {
+        const response = await fetch(apiBase + "user", {
           method: "GET",
           headers: {
             Authorization: token,
           },
+        });
+
+        const apiData = await response.json();
+
+        if (apiData.message) {
+          return console.log(apiData.message);
         }
-      );
 
-      const apiData = await response.json();
-
-      console.log(apiData);
-
-      if (response.ok) {
-        fetchUserData();
-        dispatch(setMessages(apiData));
-      } else {
-        navigate("/");
+        if (apiData) {
+          console.log(apiData);
+          setUserData(apiData);
+        } else {
+          navigate("/");
+        }
+      } catch (err) {
+        console.error(err);
       }
-    } catch (err) {
-      console.log(err);
-    }
-  }
+    },
+    [token, navigate]
+  );
+
+  // Fetches all conversations for a user
+  const fetchConversations = useCallback(
+    async function fetchConversations() {
+      try {
+        const response = await fetch(apiBase + "conversations", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
+        });
+
+        const apiData = await response.json();
+
+        if (apiData.message) {
+          return console.log(apiData.message);
+        }
+
+        console.log(apiData);
+        setConversations(apiData);
+      } catch (err) {
+        console.log(err);
+      }
+    },
+    [token]
+  );
+
+  const fetchMessages = useCallback(
+    async function fetchMessages(currentConversation: number) {
+      try {
+        const response = await fetch(
+          apiBase + "messages/" + currentConversation,
+          {
+            method: "GET",
+            headers: {
+              Authorization: token,
+            },
+          }
+        );
+
+        const apiData = await response.json();
+
+        if (response.ok) {
+          fetchUserData();
+          dispatch(setMessages(apiData));
+        } else {
+          navigate("/");
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    },
+    [dispatch, navigate, fetchUserData, token]
+  );
 
   // Sends message from current user to conversation
   async function sendMessage() {
@@ -196,7 +203,7 @@ const Dashboard = () => {
 
       fetchMessages(convoId);
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
   }
 
@@ -223,7 +230,7 @@ const Dashboard = () => {
         alert(apiData.message);
       }
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
   }
 
@@ -232,8 +239,7 @@ const Dashboard = () => {
     socket.emit("register", token);
     fetchUserData();
     fetchConversations();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [token, fetchUserData, fetchConversations]);
 
   // Listen on each socket event
   useEffect(() => {
@@ -243,34 +249,30 @@ const Dashboard = () => {
       );
     }
 
-    socket.on("error", (err) => {
-      console.log(err);
-    });
-
     socket.on("new_conversation", () => {
-      console.log("new_conversation");
       fetchConversations();
     });
 
     socket.on("new_message", () => {
-      console.log("new_message");
       fetchMessages(convoId);
     });
 
     socket.on("friends_updated", () => {
-      console.log("new friend");
       fetchUserData();
     });
 
+    socket.on("error", (err) => {
+      console.error(err);
+    });
+
+    // Remove each socket listener
     return () => {
       socket.off("error");
       socket.off("new_message");
       socket.off("new_conversation");
       socket.off("friends_updated");
     };
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [convoId]);
+  }, [convoId, fetchConversations, fetchMessages, fetchUserData, token]);
 
   return (
     <div className="flex relative max-w-full min-h-[40rem] h-screen">
