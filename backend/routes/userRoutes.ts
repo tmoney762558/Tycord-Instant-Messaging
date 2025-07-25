@@ -73,6 +73,8 @@ router.get(
         friendRequestsSent: outgoingFR.rows,
       };
 
+      console.log(userData);
+
       res.status(200).json({ userData });
     } catch (err) {
       console.error(err);
