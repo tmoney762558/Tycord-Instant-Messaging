@@ -76,7 +76,7 @@ const LandingPage = () => {
             Instant Messaging
           </p>
           <p className="py-2 px-7 border-[1px] border-white rounded-full text-sm">
-            Instant Messaging
+            Profile Customization
           </p>
           <p className="py-2 px-7 border-[1px] border-white rounded-full text-sm">
             Secure Chat Rooms
