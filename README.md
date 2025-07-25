@@ -15,7 +15,7 @@ The sidebar allows you to manage your account and customize your profile:
   - Nickname
   - Bio
 
-> ℹ️ *More profile features are in development.*
+> ℹ️ *More features are in development.*
 
 ---
 
