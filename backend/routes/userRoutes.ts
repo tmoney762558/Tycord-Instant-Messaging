@@ -2,13 +2,8 @@ import express from "express";
 import pool from "../db.ts";
 import upload from "./multerConfig.ts";
 
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Express {
-    interface Request {
-      userId: number;
-    }
-  }
+interface AuthenticatedRequest extends express.Request {
+  userId?: number;
 }
 
 const router = express.Router();
@@ -16,7 +11,7 @@ const router = express.Router();
 // Get user data
 router.get(
   "/",
-  async (req: express.Request, res: express.Response): Promise<void> => {
+  async (req: AuthenticatedRequest, res: express.Response) => {
     try {
       const userId = req.userId;
 
@@ -25,12 +20,12 @@ router.get(
         return;
       }
 
-      const userData = await pool.query(
+      const user = await pool.query(
         `
-      SELECT createdAt, username, nickname, avatar, bio
-      FROM users
-      WHERE id = $1
-      `,
+        SELECT createdAt, username, nickname, avatar, bio
+        FROM users
+        WHERE id = $1
+        `,
         [userId]
       );
 
@@ -40,7 +35,7 @@ router.get(
         FROM friends f
         JOIN users u
           ON (u.id = f.friend_id AND f.user_id = $1)
-            OR (u.id = f.user_id AND f.friend_id = $1)
+          OR (u.id = f.user_id AND f.friend_id = $1)
         `,
         [userId]
       );
@@ -51,7 +46,7 @@ router.get(
           FROM friend_requests fr
           JOIN users u
             ON u.id = fr.requester_id
-          WHERE fr.receiver_id = $1
+            WHERE fr.receiver_id = $1
           `,
         [userId]
       );
@@ -62,25 +57,25 @@ router.get(
         FROM friend_requests fr
         JOIN users u
           ON u.id = fr.receiver_id
-        WHERE fr.requester_id = $1
+          WHERE fr.requester_id = $1
         `,
         [userId]
       );
 
-      const finalUserData = {
-        createdAt: userData.rows[0].createdAt,
-        username: userData.rows[0].username,
-        nickname: userData.rows[0].nickname,
-        avatar: userData.rows[0].avatar,
-        bio: userData.rows[0].bio,
+      const userData = {
+        createdAt: user.rows[0].createdAt,
+        username: user.rows[0].username,
+        nickname: user.rows[0].nickname,
+        avatar: user.rows[0].avatar,
+        bio: user.rows[0].bio,
         friends: friends.rows,
         friendRequests: incomingFR.rows,
         friendRequestsSent: outgoingFR.rows,
       };
 
-      res.status(200).json(finalUserData);
+      res.status(200).json({ userData });
     } catch (err) {
-      console.log(err);
+      console.error(err);
       res.status(500).json({ message: "Internal Server Error" });
       return;
     }
@@ -91,7 +86,7 @@ router.get(
 router.put(
   "/",
   upload.single("newAvatar"),
-  async (req: express.Request, res: express.Response): Promise<void> => {
+  async (req: AuthenticatedRequest, res: express.Response) => {
     const client = await pool.connect();
     try {
       const userId = req.userId;
@@ -109,7 +104,7 @@ router.put(
         typeof newNickname !== "string" ||
         typeof newBio !== "string"
       ) {
-        res.status(400).json({ message: "Invalid payload." });
+        res.status(400).json({ message: "One or more fields were invalid.s" });
         return;
       }
 
@@ -136,7 +131,7 @@ router.put(
         return;
       }
 
-      // Select the current state of the user to avoid unique constraint violations
+      // Get fields from the user to determine if fields have been modified or not
       const currentUser = await client.query(
         `
         SELECT username, nickname, avatar, bio
@@ -155,6 +150,7 @@ router.put(
       const values: string[] = [];
       let index = 1;
 
+      // Dynamically update the query depending on which fields are being modified
       if (newUsername && currentUser.rows[0].username !== newUsername) {
         updatedData.push(`username = $${index++}`);
         values.push(newUsername);
@@ -184,10 +180,10 @@ router.put(
       if (newUsername && newUsername !== currentUser.rows[0].username) {
         const usernameIsTaken = await client.query(
           `
-              SELECT 1
-              FROM users
-              WHERE username = $1
-            `,
+          SELECT 1
+          FROM users
+          WHERE username = $1
+          `,
           [newUsername]
         );
 
@@ -217,7 +213,7 @@ router.put(
 // Send a friend request
 router.post(
   "/sendFriendRequest",
-  async (req: express.Request, res: express.Response): Promise<void> => {
+  async (req: AuthenticatedRequest, res: express.Response) => {
     const client = await pool.connect();
     try {
       const userId = req.userId;
@@ -236,6 +232,7 @@ router.post(
       await client.query("BEGIN");
 
       // Check if the user to be added is not the current user, a friend, or someone without an outgoing / incoming friend request (and grab the id)
+      // Could combine this into the insert query, but this is much more clear and displays intent
       const userToAddIsValid = await client.query(
         `
       SELECT u.id
@@ -270,9 +267,9 @@ router.post(
 
       await client.query(
         `
-      INSERT INTO friend_requests (requester_id, receiver_id)
-      VALUES ($1, $2)
-      `,
+        INSERT INTO friend_requests (requester_id, receiver_id)
+        VALUES ($1, $2)
+        `,
         [userId, userToAddId]
       );
 
@@ -281,7 +278,7 @@ router.post(
       res.status(200).json({ message: "Friend request successfully sent." });
     } catch (err) {
       await client.query("ROLLBACK");
-      console.log(err);
+      console.error(err);
       res.status(500).json({ message: "Internal Server Error" });
     } finally {
       client.release();
@@ -292,7 +289,7 @@ router.post(
 // Accept a friend request
 router.post(
   "/acceptRequest",
-  async (req: express.Request, res: express.Response): Promise<void> => {
+  async (req: AuthenticatedRequest, res: express.Response) => {
     const client = await pool.connect();
     try {
       const userId = req.userId;
@@ -369,7 +366,7 @@ router.post(
       res.json({ message: "Successfully friended user." });
     } catch (err) {
       client.query("ROLLBACK");
-      console.log(err);
+      console.error(err);
       res.status(500).json({ message: "Internal Server Error" });
     } finally {
       client.release();
@@ -380,7 +377,7 @@ router.post(
 // Decline a friend request
 router.delete(
   "/declineRequest",
-  async (req: express.Request, res: express.Response): Promise<void> => {
+  async (req: AuthenticatedRequest, res: express.Response) => {
     try {
       const userId = req.userId;
       const { userToDecline } = req.body;
@@ -399,10 +396,10 @@ router.delete(
       // Ensure user to decline exists (and grab its id)
       const userToDeclineExists = await pool.query(
         `
-      SELECT id
-      FROM users
-      WHERE username = $1
-      `,
+        SELECT id
+        FROM users
+        WHERE username = $1
+        `,
         [userToDecline]
       );
 
@@ -420,7 +417,8 @@ router.delete(
       SELECT 1
       FROM friend_requests
       WHERE receiver_id = $1
-        AND requester_id = $2
+      AND requester_id = $2
+      AND EXISTS
       `,
         [userId, userToDeclineId]
       );
@@ -444,9 +442,8 @@ router.delete(
       res
         .status(200)
         .json({ message: "Successfully declined friend request." });
-      return;
     } catch (err) {
-      console.log(err);
+      console.error(err);
       res.status(500).json({ message: "Internal Server Error" });
     }
   }
@@ -455,7 +452,7 @@ router.delete(
 // Cancel a friend request
 router.delete(
   "/cancelRequest",
-  async (req: express.Request, res: express.Response): Promise<void> => {
+  async (req: AuthenticatedRequest, res: express.Response) => {
     try {
       const userId = req.userId;
       const { userToCancel } = req.body;
@@ -495,7 +492,7 @@ router.delete(
       SELECT 1
       FROM friend_requests
       WHERE requester_id = $1
-        AND receiver_id = $2
+      AND receiver_id = $2
       `,
         [userId, parseInt(userToCancelId)]
       );
@@ -511,7 +508,7 @@ router.delete(
         `
       DELETE FROM friend_requests
       WHERE requester_id = $1
-        AND receiver_id = $2
+      AND receiver_id = $2
       `,
         [userId, userToCancelId]
       );
@@ -520,7 +517,7 @@ router.delete(
         .status(200)
         .json({ message: "Successfully cancelled friend request." });
     } catch (err) {
-      console.log(err);
+      console.error(err);
       res.status(500).json({ message: "Internal Server Error" });
     }
   }
@@ -529,7 +526,7 @@ router.delete(
 // Unfriend a user
 router.put(
   "/unfriend",
-  async (req: express.Request, res: express.Response): Promise<void> => {
+  async (req: AuthenticatedRequest, res: express.Response) => {
     try {
       const userId = req.userId;
       const { userToUnfriend } = req.body;
@@ -551,7 +548,7 @@ router.put(
         SELECT id
         FROM users
         WHERE username = $1
-      `,
+        `,
         [userToUnfriend]
       );
 
@@ -566,16 +563,16 @@ router.put(
 
       await pool.query(
         `
-      DELETE FROM friends f
-      WHERE (f.user_id = $1 AND f.friend_id = $2)
+        DELETE FROM friends f
+        WHERE (f.user_id = $1 AND f.friend_id = $2)
         OR (f.friend_id = $1 AND f.user_id = $2)
-      `,
+        `,
         [userId, userToUnfriendId]
       );
 
       res.status(200).json({ message: "Successfully unfriended user." });
     } catch (err) {
-      console.log(err);
+      console.error(err);
       res.status(500).json({ message: "Internal Server Error" });
     }
   }
@@ -584,7 +581,7 @@ router.put(
 // Block a user
 router.put(
   "/block",
-  async (req: express.Request, res: express.Response): Promise<void> => {
+  async (req: AuthenticatedRequest, res: express.Response) => {
     try {
       const userId = req.userId;
       const { userToBlock } = req.body;
@@ -600,13 +597,13 @@ router.put(
         return;
       }
 
-      // Check if the user to blcok exists (and grab its id)
+      // Check if the user to block exists (and grab its id)
       const userToBlockExists = await pool.query(
         `
-    SELECT id
-    FROM users
-    WHERE username = $1
-    `,
+        SELECT id
+        FROM users
+        WHERE username = $1
+        `,
         [userToBlock]
       );
 
@@ -623,15 +620,15 @@ router.put(
 
       await pool.query(
         `
-    INSERT INTO blocked_users (blocker_id, blocked_id)
-    VALUES ($1, $2)
-    `,
+        INSERT INTO blocked_users (blocker_id, blocked_id)
+        VALUES ($1, $2)
+        `,
         [userId, userToBlockId]
       );
 
       res.status(200).json({ message: "Successfully blocked user." });
     } catch (err) {
-      console.log(err);
+      console.error(err);
       res.status(500).json({ message: "Internal Server Error" });
     }
   }
@@ -640,7 +637,7 @@ router.put(
 // Unblock a user
 router.put(
   "/unblock",
-  async (req: express.Request, res: express.Response): Promise<void> => {
+  async (req: AuthenticatedRequest, res: express.Response) => {
     try {
       const userId = req.userId;
       const { userToUnblock } = req.body;
@@ -657,10 +654,10 @@ router.put(
       // Ensure the user to unblock exists (and grab its id)
       const userToUnblockExists = await pool.query(
         `
-      SELECT id
-      FROM users
-      WHERE username = $1
-      `,
+        SELECT id
+        FROM users
+        WHERE username = $1
+        `,
         [userToUnblock]
       );
 
@@ -668,22 +665,23 @@ router.put(
         res
           .status(404)
           .json({ message: "User to unblock could not be found." });
+        return;
       }
 
       const userToUnblockId = userToUnblockExists.rows[0].id;
 
       await pool.query(
         `
-      DELETE FROM blocked_users
-      WHERE blocker_id = $1
+        DELETE FROM blocked_users
+        WHERE blocker_id = $1
         AND blocked_id = $2
-      `,
+        `,
         [userId, userToUnblockId]
       );
 
       res.status(200).json({ message: "Successfully unblocked user." });
     } catch (err) {
-      console.log(err);
+      console.error(err);
       res.status(500).json({ message: "Internal Server Error" });
     }
   }

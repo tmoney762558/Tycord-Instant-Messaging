@@ -8,7 +8,7 @@ const router = express.Router();
 // Register a new user
 router.post(
   "/register",
-  async (req: express.Request, res: express.Response): Promise<void> => {
+  async (req: express.Request, res: express.Response) => {
     try {
       const { email, password, username, nickname } = req.body;
 
@@ -30,7 +30,7 @@ router.post(
       }
 
       // Ensure email isn't astronomically large
-      if (email.length >= 100) {
+      if (email.length >= 50) {
         res.status(400).json({
           message:
             "Email is too long. Emails must be 100 characters or shorter.",
@@ -75,7 +75,7 @@ router.post(
       }
 
       // Check if email or username are in use
-      const result = await pool.query(
+      const uniqueCheck = await pool.query(
         `
         SELECT
         EXISTS (SELECT 1 FROM users WHERE email = $1) AS email_exists,
@@ -84,8 +84,8 @@ router.post(
         [email, username]
       );
 
-      const emailTaken = result.rows[0].email_exists;
-      const usernameTaken = result.rows[0].username_exists;
+      const emailTaken = uniqueCheck.rows[0].email_exists;
+      const usernameTaken = uniqueCheck.rows[0].username_exists;
 
       if (emailTaken) {
         res
@@ -117,13 +117,12 @@ router.post(
       // Create token for new user
       const token = jwt.sign(
         { id: newUser.rows[0].id },
-        process.env.JWT_SECRET || "Blah Blah"
+        process.env.JWT_SECRET
       );
 
       res.status(200).json({ token });
-      return;
     } catch (err) {
-      console.log(err);
+      console.error(err);
       res.status(500).json({ message: "Internal Server Error" });
     }
   }
@@ -132,7 +131,7 @@ router.post(
 // Login a user
 router.post(
   "/login",
-  async (req: express.Request, res: express.Response): Promise<void> => {
+  async (req: express.Request, res: express.Response) => {
     try {
       const { email, password } = req.body;
 
@@ -173,17 +172,13 @@ router.post(
       }
 
       // Create token for user
-      const token = jwt.sign(
-        { id: user.rows[0].id },
-        process.env.JWT_SECRET || "Blah Blah",
-        {
-          expiresIn: "24h",
-        }
-      );
+      const token = jwt.sign({ id: user.rows[0].id }, process.env.JWT_SECRET, {
+        expiresIn: "24h",
+      });
 
       res.status(200).json({ token });
     } catch (err) {
-      console.log(err);
+      console.error(err);
       res.status(500).json({ message: "Internal Server Error" });
     }
   }

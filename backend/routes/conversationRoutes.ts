@@ -2,62 +2,53 @@ import express from "express";
 import pool from "../db.ts";
 import upload from "./multerConfig.ts";
 
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Express {
-    interface Request {
-      userId: number;
-    }
-  }
+interface AuthenticatedRequest extends express.Request {
+  userId?: number;
 }
 
 const router = express.Router();
 
 // Get all conversations for a user
-router.get(
-  "/",
-  async (req: express.Request, res: express.Response): Promise<void> => {
-    try {
-      const userId = req.userId;
+router.get("/", async (req: AuthenticatedRequest, res: express.Response) => {
+  try {
+    const userId = req.userId;
 
-      if (!userId) {
-        res.status(500).json({ message: "Authentication error." });
-        return;
-      }
+    if (!userId) {
+      res.status(500).json({ message: "Authentication error." });
+      return;
+    }
 
-      // Get all conversations in which the user is a participant
-      const conversations = await pool.query(
-        `
+    // Get all conversations in which the user is a participant
+    const conversations = await pool.query(
+      `
         SELECT c.id, c.name, c.image
         FROM conversations c
         JOIN conversation_participants cp
         ON c.id = cp.conversation_id
         WHERE cp.user_id = $1
         `,
-        [userId]
-      );
+      [userId]
+    );
 
-      res.status(200).json(conversations.rows);
-      return;
-    } catch (err) {
-      console.log(err);
-      res.status(500).json({ message: "Internal Server Error" });
-    }
+    res.status(200).json(conversations.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal Server Error" });
   }
-);
+});
 
 // Create a new conversation
 router.post(
   "/",
   upload.single("conversationImg"),
-  async (req: express.Request, res: express.Response): Promise<void> => {
+  async (req: AuthenticatedRequest, res: express.Response): Promise<void> => {
     const client = await pool.connect();
     try {
       const userId = req.userId;
       const { conversationName } = req.body;
       const recipientUsernames = JSON.parse(req.body.recipientUsernames);
       const conversationImg = req.file ? `/uploads/${req.file.filename}` : null;
-      let addedSelf = false;
+      let isAddingSelf = false;
 
       if (!userId) {
         res.status(500).json({ message: "Authentication error." });
@@ -71,7 +62,7 @@ router.post(
         return;
       }
 
-      if (!recipientUsernames || recipientUsernames.length === 0) {
+      if (recipientUsernames.length === 0 || typeof recipientUsernames !== "object") {
         res.status(400).json({ message: "Recipients were not provided." });
         return;
       }
@@ -88,28 +79,22 @@ router.post(
         [userId]
       );
 
-      if (!userExists) {
-        res
-          .status(400)
-          .json({ message: "The current user could not be found." });
-        return;
-      }
-
       if (
         recipientUsernames.find(
           (username) => username === userExists.rows[0].username
         )
       ) {
-        addedSelf = true;
+        isAddingSelf = true;
       }
+
       // Ensure that each recipient is valid (user is not blocked and the recipient actually exists)
       const validRecipients = await client.query(
         `
           SELECT id FROM users
           WHERE username = ANY($1)
-            AND id NOT IN (
-              SELECT blocked_id FROM blocked_users WHERE blocker_id = $2
-            )
+            AND id NOT IN
+              (SELECT blocked_id FROM blocked_users WHERE blocker_id IN
+              (SELECT id FROM users WHERE username = ANY($1)))
           `,
         [recipientUsernames, userId]
       );
@@ -123,7 +108,8 @@ router.post(
       }
 
       let allRecipients: number[] | null = null;
-      if (addedSelf) {
+
+      if (isAddingSelf) {
         allRecipients = [...validRecipients.rows.map((row) => row.id)];
       } else {
         allRecipients = [...validRecipients.rows.map((row) => row.id), userId];
@@ -142,6 +128,13 @@ router.post(
       const conversationId = conversation.rows[0].id;
 
       for (let i = 0; i < allRecipients.length; i++) {
+        if (typeof allRecipients[i] !== "string") {
+          res
+            .status(400)
+            .json({ message: "One or more recipient was invalid." });
+          return;
+        }
+
         await client.query(
           `
           INSERT INTO conversation_participants (user_id, conversation_id)
@@ -154,11 +147,10 @@ router.post(
 
       await client.query("COMMIT");
 
-      res.status(200).json(conversation);
-      return;
+      res.status(200).json({ message: "Successfully created conversation." });
     } catch (err) {
       await client.query("ROLLBACK");
-      console.log(err);
+      console.error(err);
       res.status(500).json({ message: "Internal Server Error" });
     } finally {
       client.release();
@@ -169,7 +161,7 @@ router.post(
 // Remove a user from a conversation and delete the conversation if no users are remaining
 router.delete(
   "/:convoId",
-  async (req: express.Request, res: express.Response): Promise<void> => {
+  async (req: AuthenticatedRequest, res: express.Response) => {
     const client = await pool.connect();
     try {
       const userId = req.userId;
@@ -180,21 +172,11 @@ router.delete(
         return;
       }
 
-      if (!convoId || typeof convoId !== "string") {
+      if (!convoId || typeof isNaN(parseInt(convoId))) {
         res.status(500).json({ message: "No conversation id provided." });
       }
 
       await client.query("BEGIN");
-
-      // Check if the user is in the conversation (and therefore authorized to leave it)
-      const isParticipant = await client.query(
-        `
-          SELECT 1
-          FROM conversation_participants cp
-          WHERE conversation_id = $1 AND user_id = $2
-        `,
-        [parseInt(convoId), userId]
-      );
 
       // Count how many users are in the conversation (to determine next step)
       const count = await client.query(
@@ -206,25 +188,23 @@ router.delete(
         [parseInt(convoId)]
       );
 
-      if (isParticipant.rows.length === 0) {
-        res.status(400).send({ message: "Conversation not found." });
-        return;
-      }
-
       // Delete entire conversation if less than 2 users remain
       if (parseInt(count.rows[0].count) <= 1) {
         await client.query(
           `
           DELETE FROM conversations
           WHERE id = $1
+          AND EXISTS
+            (SELECT id FROM conversation_participants
+            WHERE conversation_id = $1
+            AND user_id = $1)
           `,
-          [parseInt(convoId)]
+          [parseInt(convoId), userId]
         );
 
         await client.query("COMMIT");
 
         res.status(200).json({ message: "Successfully deleted conversation." });
-        return;
       } else {
         // Simply remove the user if 1 or more users remain within the conversation
         await client.query(
@@ -240,11 +220,10 @@ router.delete(
         res
           .status(200)
           .json({ message: "Successfully removed user from conversation." });
-        return;
       }
     } catch (err) {
       await client.query("ROLLBACK");
-      console.log(err);
+      console.error(err);
       res.status(500).json({ message: "Internal Server Error" });
     } finally {
       client.release();

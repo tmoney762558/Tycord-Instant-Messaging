@@ -83,9 +83,7 @@ const Dashboard = () => {
   const [profileAvatar, setProfileAvatar] = useState("");
   const [profileBio, setProfileBio] = useState("");
   const [friendRequestInput, setFriendRequestInput] = useState("");
-
   const [currentTab, setCurrentTab] = useState("Direct Messages");
-
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -102,12 +100,7 @@ const Dashboard = () => {
 
         const apiData = await response.json();
 
-        if (apiData.message) {
-          return console.log(apiData.message);
-        }
-
         if (apiData) {
-          console.log(apiData);
           setUserData(apiData);
         } else {
           navigate("/");
@@ -133,14 +126,9 @@ const Dashboard = () => {
 
         const apiData = await response.json();
 
-        if (apiData.message) {
-          return console.log(apiData.message);
-        }
-
-        console.log(apiData);
         setConversations(apiData);
       } catch (err) {
-        console.log(err);
+        console.error(err);
       }
     },
     [token]
