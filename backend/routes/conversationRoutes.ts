@@ -62,7 +62,10 @@ router.post(
         return;
       }
 
-      if (recipientUsernames.length === 0 || typeof recipientUsernames !== "object") {
+      if (
+        recipientUsernames.length === 0 ||
+        typeof recipientUsernames !== "object"
+      ) {
         res.status(400).json({ message: "Recipients were not provided." });
         return;
       }
@@ -90,13 +93,13 @@ router.post(
       // Ensure that each recipient is valid (user is not blocked and the recipient actually exists)
       const validRecipients = await client.query(
         `
-          SELECT id FROM users
-          WHERE username = ANY($1)
-            AND id NOT IN
-              (SELECT blocked_id FROM blocked_users WHERE blocker_id IN
-              (SELECT id FROM users WHERE username = ANY($1)))
-          `,
-        [recipientUsernames, userId]
+        SELECT id FROM users
+        WHERE username = ANY($1)
+        AND id NOT IN
+          (SELECT blocked_id FROM blocked_users WHERE blocker_id IN
+          (SELECT id FROM users WHERE username = ANY($1)))
+        `,
+        [recipientUsernames]
       );
 
       // Check if all the entered usernames had a corresponding account
